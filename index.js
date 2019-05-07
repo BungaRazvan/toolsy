@@ -1,5 +1,4 @@
 const Discord = require("discord.js");
-const token = procces.env.token;
 
 const bot = new Discord.Client({
   disableEveryone: true
