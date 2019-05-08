@@ -9,7 +9,7 @@ module.exports.run = async (bot, message, args) => {
 
   if (message.member.voiceChannel) {
     const shareEmbed = new RichEmbed()
-      .setColor("#0099ff")
+      .setColor(colors.twicth)
       .addField(
         "ScreenShare",
         `Screenshare functionality in ${
@@ -26,5 +26,6 @@ module.exports.run = async (bot, message, args) => {
 
 module.exports.config = {
   name: "share",
-  description: "Share you screen"
+  description: "Share you screen",
+  usage: "!share"
 };

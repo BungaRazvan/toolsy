@@ -18,6 +18,7 @@ module.exports.run = async (bot, message, args) => {
             command.config.description
           }`
         )
+        .addField("**Usage**: ", `${command.config.usage}\n\n`)
         .setFooter(`${bot.user.username}`, `${bot.user.displayAvatarURL}`);
 
       message.channel.send(helpCommandEmbed);
@@ -42,6 +43,7 @@ module.exports.run = async (bot, message, args) => {
         "**Description**: ",
         `${command.config.description}\n\n`
       );
+      helpEmbed.addField("**Usage**: ", `${command.config.usage}\n\n`);
     });
     message.author.send(helpEmbed);
   }

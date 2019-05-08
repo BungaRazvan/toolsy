@@ -1,10 +1,10 @@
 const Discord = require("discord.js");
+const fs = require("fs");
+const botconfig = require("./json/credentials.json");
 
 const bot = new Discord.Client({
   disableEveryone: true
 });
-const fs = require("fs");
-const botconfig = require("./json/credentials.json");
 
 bot.commands = new Discord.Collection();
 
@@ -30,6 +30,10 @@ bot.on("guildMemberAdd", member => {
 });
 
 bot.on("message", async message => {
+  if (message.author.bot) return;
+  if (message.channel.type === "dm") return;
+  if (!message.content.startsWith(botconfig.prefix)) return;
+
   let prefix = botconfig.prefix;
   let messageArray = message.content.split(" ");
   let cmd = messageArray[0];
@@ -41,7 +45,7 @@ bot.on("message", async message => {
 
 bot.on("ready", async () => {
   console.log(`${bot.user.username} is online`);
-  bot.user.setActivity(`${botconfig.prefix}`, {
+  bot.user.setActivity(`${botconfig.prefix}help`, {
     type: "STREAMING"
   });
 });
