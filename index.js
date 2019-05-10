@@ -1,6 +1,8 @@
 const Discord = require("discord.js");
 const fs = require("fs");
 const botconfig = require("./json/credentials.json");
+var jsonRead = fs.readFileSync("./json/roles.json");
+var jsonFile = JSON.parse(jsonRead);
 
 const bot = new Discord.Client({
   disableEveryone: true
@@ -25,8 +27,14 @@ fs.readdir("./commands/", (err, files) => {
 });
 
 bot.on("guildMemberAdd", member => {
-  let memberRole = member.guild.roles.find("name", "@member");
-  member.addRole(memberRole);
+  var guildId = member.guild.id;
+  if (!jsonFile[guildId]) {
+    console.log("Role could not be found");
+  } else {
+    let autoRole = jsonFile[guildId];
+    let myRole = member.guild.roles.find(role => role.name === autoRole.role);
+    member.addRole(myRole);
+  }
 });
 
 bot.on("message", async message => {
@@ -41,6 +49,20 @@ bot.on("message", async message => {
 
   let commandfile = bot.commands.get(cmd.slice(prefix.length));
   if (commandfile) commandfile.run(bot, message, args);
+
+  if (message.content == `${botconfig.prefix}setrole`) {
+    if (!message.member.hasPermission("ADMINISTRATOR")) {
+      return message.channel.send(
+        "This requires you to have a role 'Administrator' permisions"
+      );
+    }
+    if (!args[0]) {
+      return message.channel.send(
+        `Please enter argument. ${botconfig.prefix}setrole <roleName>`
+      );
+    }
+    message.channel.send("sa");
+  }
 });
 
 bot.on("ready", async () => {

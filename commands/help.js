@@ -21,7 +21,7 @@ module.exports.run = async (bot, message, args) => {
         .addField("**Usage**: ", `${command.config.usage}\n\n`)
         .setFooter(`${bot.user.username}`, `${bot.user.displayAvatarURL}`);
 
-      message.channel.send(helpCommandEmbed);
+      return message.channel.send(helpCommandEmbed);
     }
   }
 
@@ -45,7 +45,7 @@ module.exports.run = async (bot, message, args) => {
       );
       helpEmbed.addField("**Usage**: ", `${command.config.usage}\n\n`);
     });
-    message.author.send(helpEmbed);
+    return message.author.send(helpEmbed);
   }
 };
 

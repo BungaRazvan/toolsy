@@ -18,9 +18,9 @@ module.exports.run = async (bot, message, args) => {
       )
       .setFooter(`${bot.user.username}`, `${bot.user.displayAvatarURL}`);
 
-    message.channel.send(shareEmbed);
+    return message.channel.send(shareEmbed);
   } else {
-    message.channel.send("You have to be connected to a Voice Channel");
+    return message.channel.send("You have to be connected to a Voice Channel");
   }
 };
 
