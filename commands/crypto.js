@@ -10,7 +10,7 @@ module.exports.run = async (bot, message, args) => {
       .get(
         `https://min-api.cryptocompare.com/data/price?fsym=${coin}&tsyms=BTC,USD,EUR`
       )
-      .then(res => {
+      .then((res) => {
         let cryptosUSD = res.data.USD;
         let cryptosEUR = res.data.EUR;
         let cryptosBTC = res.data.BTC;
@@ -36,7 +36,7 @@ module.exports.run = async (bot, message, args) => {
       .get(
         `https://min-api.cryptocompare.com/data/price?fsym=${coin}&tsyms=${currencie}`
       )
-      .then(res => {
+      .then((res) => {
         let cryptosUSD = res.data.USD;
         let cryptosEUR = res.data.EUR;
         let cryptosBTC = res.data.BTC;
@@ -77,5 +77,5 @@ module.exports.run = async (bot, message, args) => {
 module.exports.config = {
   name: "crypto",
   description: "Display the value of a cryptocurrency",
-  usage: "!crypto <btc> or !crypto <btc> <eur>"
+  usage: "!crypto <btc> or !crypto <btc> <eur>",
 };
