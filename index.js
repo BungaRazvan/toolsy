@@ -1,6 +1,6 @@
 const Discord = require("discord.js");
 const fs = require("fs");
-const con = require("./skins/sql/tables");
+const con = require("./skins/tables");
 const botconfig = require("./json/credentials.json");
 var jsonRead = fs.readFileSync("./json/roles.json");
 var jsonFile = JSON.parse(jsonRead);

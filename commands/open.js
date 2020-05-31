@@ -7,7 +7,7 @@ const {
   Cases,
   Players,
   Inventory,
-} = require("../skins/sql/tables.js");
+} = require("../skins/tables.js");
 
 module.exports.run = async (bot, message, args) => {
   const authorId = message.author.id;
