@@ -1,5 +1,3 @@
-const { Client, RichEmbed } = require("discord.js");
-const colors = require("../json/colors.json");
 const { Cases } = require("../skins/sql/tables.js");
 
 module.exports.run = async (bot, message, args) => {

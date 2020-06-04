@@ -1,4 +1,4 @@
-const { Client, RichEmbed } = require("discord.js");
+const { MessageEmbed } = require("discord.js");
 const json = require("../json/credentials.json");
 
 module.exports.run = async (bot, message, args) => {
@@ -10,13 +10,11 @@ module.exports.run = async (bot, message, args) => {
     if (bot.commands.has(command)) {
       command = bot.commands.get(command);
 
-      const helpCommandEmbed = new RichEmbed()
+      const helpCommandEmbed = new MessageEmbed()
         .setColor("#0099ff")
 
         .setDescription(
-          `**Command:** ${command.config.name}\n**Description** ${
-            command.config.description
-          }`
+          `**Command:** ${command.config.name}\n**Description** ${command.config.description}`
         )
         .addField("**Usage**: ", `${command.config.usage}\n\n`)
         .setFooter(`${bot.user.username}`, `${bot.user.displayAvatarURL}`);
@@ -27,14 +25,14 @@ module.exports.run = async (bot, message, args) => {
 
   if (!args[0]) {
     const img = message.guild.iconURL;
-    const helpEmbed = new RichEmbed()
+    const helpEmbed = new MessageEmbed()
       .setColor("#0099ff")
       .setThumbnail(img)
       .setDescription("These are the availble commands")
-      .setFooter(`${bot.user.username}`, `${bot.user.displayAvatarURL}`);
+      .setFooter(`${bot.user.username}`, `${bot.user.displayAvatarURL()}`);
 
     const commands = bot.commands;
-    commands.forEach(command => {
+    commands.forEach((command) => {
       helpEmbed.addField(
         "**Command**: ",
         `${json.prefix}${command.config.name}`
@@ -51,5 +49,5 @@ module.exports.run = async (bot, message, args) => {
 
 module.exports.config = {
   name: "help",
-  description: "List of all commands"
+  description: "List of all commands",
 };
