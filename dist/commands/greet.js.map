@@ -1,1 +1,0 @@
-{"version":3,"file":"greet.js","sourceRoot":"","sources":["../../src/commands/greet.ts"],"names":[],"mappings":";;;AAGA,MAAa,YAAY;IAAzB;QACE,iBAAY,GAAG,CAAC,OAAO,EAAE,OAAO,CAAC,CAAC;IASpC,CAAC;IAPC,cAAc,CAAC,aAAqB;QAClC,OAAO,OAAO,aAAa,0BAA0B,CAAC;IACxD,CAAC;IAED,KAAK,CAAC,GAAG,CAAC,iBAAiC;QACzC,MAAM,iBAAiB,CAAC,eAAe,CAAC,KAAK,CAAC,eAAe,CAAC,CAAC;IACjE,CAAC;CACF;AAVD,oCAUC"}
