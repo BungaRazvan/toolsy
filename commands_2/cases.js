@@ -1,4 +1,4 @@
-const { Cases } = require("../skins/sql/tables.js");
+const { Cases } = require("./tables.js");
 
 module.exports.run = async (bot, message, args) => {
   const cases = await Cases.findAll();

@@ -1,7 +1,6 @@
 const Discord = require("discord.js");
 const fs = require("fs");
-const con = require("./skins/sql/tables");
-const botconfig = require("./json/credentials.json");
+const constants = require("./json/constants.json");
 var jsonRead = fs.readFileSync("./json/roles.json");
 var jsonFile = JSON.parse(jsonRead);
 
@@ -39,17 +38,28 @@ bot.on("guildMemberAdd", (member) => {
 });
 
 bot.on("message", async (message) => {
-  if (message.author.bot) return;
-  if (message.channel.type === "dm") return;
-  if (!message.content.startsWith(botconfig.prefix)) return;
+  if (message.author.bot) {
+    return;
+  }
 
-  let prefix = botconfig.prefix;
+  if (message.channel.type === "dm") {
+    return;
+  }
+
+  if (!message.content.startsWith(constants.prefix)) {
+    return;
+  }
+
+  let prefix = constants.prefix;
   let messageArray = message.content.split(" ");
   let cmd = messageArray[0];
   let args = messageArray.slice(1);
 
   let commandfile = bot.commands.get(cmd.slice(prefix.length));
-  if (commandfile) commandfile.run(bot, message, args);
+
+  if (commandfile) {
+    commandfile.run(bot, message, args);
+  }
 });
 
 bot.on("ready", async () => {
@@ -59,4 +69,4 @@ bot.on("ready", async () => {
   });
 });
 
-bot.login(botconfig.token);
+bot.login(constants.token);
