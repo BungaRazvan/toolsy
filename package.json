@@ -14,17 +14,16 @@
   "author": "Bunga Razvan",
   "license": "ISC",
   "dependencies": {
-    "@types/ws": "^7.2.4",
-    "axios": "^0.19.2",
-    "discord.js": "^12.2.0",
-    "dotenv": "^8.2.0",
+    "@aws-sdk/client-ec2": "3.49.0",
+    "@aws-sdk/client-s3": "3.49.0",
+    "axios": "0.19.2",
+    "discord.js": "12.2.0",
+    "dotenv": "8.2.0",
     "fs": "0.0.1-security",
-    "mysql2": "^2.1.0",
-    "sequelize": "^5.21.10"
+    "mysql2": "2.1.0",
+    "sequelize": "5.21.10"
   },
   "devDependencies": {
-    "@babel/preset-typescript": "^7.10.1",
-    "nodemon": "^2.0.4",
-    "typescript": "^3.9.3"
+    "nodemon": "2.0.4"
   }
 }

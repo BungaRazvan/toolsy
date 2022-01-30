@@ -1,11 +1,13 @@
 const { MessageEmbed } = require("discord.js");
-const json = require("../json/credentials.json");
+const json = require("../json/constants.json");
 
 module.exports.run = async (bot, message, args) => {
   if (args[0] == "help")
     return message.channel.send(`Just do ${json.prefix}help`);
 
   if (args[0]) {
+    return;
+
     let command = args[0];
     if (bot.commands.has(command)) {
       command = bot.commands.get(command);
@@ -43,7 +45,8 @@ module.exports.run = async (bot, message, args) => {
       );
       helpEmbed.addField("**Usage**: ", `${command.config.usage}\n\n`);
     });
-    return message.author.send(helpEmbed);
+
+    return message.channel.send(helpEmbed);
   }
 };
 
