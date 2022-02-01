@@ -1,8 +1,11 @@
 const Discord = require("discord.js");
 const fs = require("fs");
 const constants = require("./json/constants.json");
-var jsonRead = fs.readFileSync("./json/roles.json");
-var jsonFile = JSON.parse(jsonRead);
+const jsonRead = fs.readFileSync("./json/roles.json");
+const jsonFile = JSON.parse(jsonRead);
+const env = require("dotenv");
+
+env.config();
 
 const bot = new Discord.Client({
   disableEveryone: true,
@@ -69,4 +72,4 @@ bot.on("ready", async () => {
   });
 });
 
-bot.login(constants.token);
+bot.login(process.env.BOT_TOKEN);
