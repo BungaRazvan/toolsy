@@ -9,12 +9,6 @@ const {
 const { getAwsState } = require("../utils/aws");
 
 module.exports.run = async (bot, message, args) => {
-  if (message.author.id != myUserId) {
-    return message.channel.send(
-      "You do not have permision to run this command ask someone else"
-    );
-  }
-
   const client = new EC2Client({ region: awsRegion });
   let instance_des = await getAwsState(
     client,
@@ -25,6 +19,12 @@ module.exports.run = async (bot, message, args) => {
   if (instance_des.state == "running") {
     return message.channel.send(
       `Minecraft server already running at ${instance_des.ip}`
+    );
+  }
+
+  if (message.author.id != myUserId) {
+    return message.channel.send(
+      "You do not have permision to run this command ask someone else"
     );
   }
 
