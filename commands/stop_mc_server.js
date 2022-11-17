@@ -16,7 +16,7 @@ module.exports.run = async (bot, message, args) => {
   );
 
   if (instance_des.state == "stopped") {
-    return message.channel.send("Minecraft Server Stopped");
+    return message.channel.send("Minecraft Server Allready Stopped");
   }
 
   const command = new StopInstancesCommand({
