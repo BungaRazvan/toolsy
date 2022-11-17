@@ -22,12 +22,6 @@ module.exports.run = async (bot, message, args) => {
     );
   }
 
-  if (message.author.id != myUserId) {
-    return message.channel.send(
-      "You do not have permision to run this command ask someone else"
-    );
-  }
-
   if (instance_des.state == "stopping" || instance_des.state == "pending") {
     return message.channel.send("Something went wrong try again later!");
   }
