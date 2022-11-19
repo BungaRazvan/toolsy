@@ -5,17 +5,13 @@ const {
   awsMinecraftServerInstance,
 } = require("./../json/constants.json");
 
-const { getAwsState } = require("../utils/aws");
+const { getAwsInfo } = require("../utils/aws");
 
 module.exports.run = async (bot, message, args) => {
   const client = new EC2Client({ region: awsRegion });
-  let instance_des = await getAwsState(
-    client,
-    awsMinecraftServerInstance,
-    true
-  );
+  let instance = await getAwsInfo(client, awsMinecraftServerInstance);
 
-  if (instance_des.state == "stopped") {
+  if (instance.state == "stopped") {
     return message.channel.send("Minecraft Server Allready Stopped");
   }
 
@@ -25,13 +21,9 @@ module.exports.run = async (bot, message, args) => {
   });
   await client.send(command);
 
-  while (instance_des.state == "stopping") {
+  while (instance.state == "stopping") {
     setTimeout(async () => {
-      instance_des = await getAwsState(
-        client,
-        awsMinecraftServerInstance,
-        true
-      );
+      instance = await getAwsInfo(client, awsMinecraftServerInstance);
     }, 5000);
   }
 

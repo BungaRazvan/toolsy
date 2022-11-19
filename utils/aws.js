@@ -1,14 +1,16 @@
-const {
-  awsRegion,
-  awsMinecraftServerInstance,
-} = require("./../json/constants.json");
+const { awsRegion } = require("./../json/constants.json");
 
 const { EC2Client, DescribeInstancesCommand } = require("@aws-sdk/client-ec2");
 
-module.exports.getAwsState = async (client = null, instance, ip = false) => {
+module.exports.getAwsInfo = async (client = null, instance, args = {}) => {
   let awsClient = client;
+  const responseArgs = {
+    ip: false,
+    all: false,
+    ...args,
+  };
 
-  if (awsClient) {
+  if (!awsClient) {
     awsClient = new EC2Client({ region: awsRegion });
   }
 
@@ -18,14 +20,18 @@ module.exports.getAwsState = async (client = null, instance, ip = false) => {
   });
 
   const response = await awsClient.send(command);
-  const return_response = {};
-  const instance_response = response.Reservations[0].Instances[0];
+  const returnResponse = {};
+  const instanceResponse = response.Reservations[0].Instances[0];
 
-  if (ip) {
-    return_response["ip"] = instance_response.PublicIpAddress;
+  if (responseArgs.all) {
+    returnResponse.all = instanceResponse;
   }
 
-  return_response["state"] = instance_response.State.Name;
+  if (responseArgs.ip) {
+    returnResponse.ip = instanceResponse.PublicIpAddress;
+  }
 
-  return return_response;
+  returnResponse.state = instanceResponse.State.Name;
+
+  return returnResponse;
 };
