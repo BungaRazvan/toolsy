@@ -1,9 +1,10 @@
 const Discord = require("discord.js");
 const fs = require("fs");
+const env = require("dotenv");
+
 const constants = require("./json/constants.json");
 const jsonRead = fs.readFileSync("./json/roles.json");
 const jsonFile = JSON.parse(jsonRead);
-const env = require("dotenv");
 
 env.config();
 
@@ -17,6 +18,7 @@ fs.readdir("./commands/", (err, files) => {
   if (err) console.log(err);
 
   let jsfile = files.filter((f) => f.split(".").pop() === "js");
+
   if (jsfile.length <= 0) {
     console.log("Couldn't find commands.");
     return;
@@ -31,13 +33,15 @@ fs.readdir("./commands/", (err, files) => {
 
 bot.on("guildMemberAdd", (member) => {
   var guildId = member.guild.id;
+
   if (!jsonFile[guildId]) {
     console.log("Role could not be found");
-  } else {
-    let autoRole = jsonFile[guildId];
-    let myRole = member.guild.roles.find((role) => role.name === autoRole.role);
-    member.addRole(myRole);
+    return;
   }
+
+  let autoRole = jsonFile[guildId];
+  let myRole = member.guild.roles.find((role) => role.name === autoRole.role);
+  member.addRole(myRole);
 });
 
 bot.on("message", async (message) => {

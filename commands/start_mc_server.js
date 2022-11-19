@@ -3,26 +3,23 @@ const { EC2Client, StartInstancesCommand } = require("@aws-sdk/client-ec2");
 const {
   awsRegion,
   awsMinecraftServerInstance,
-  myUserId,
 } = require("./../json/constants.json");
 
-const { getAwsState } = require("../utils/aws");
+const { getAwsInfo } = require("../utils/aws");
 
 module.exports.run = async (bot, message, args) => {
   const client = new EC2Client({ region: awsRegion });
-  let instance_des = await getAwsState(
-    client,
-    awsMinecraftServerInstance,
-    true
-  );
+  let instanceDes = await getAwsInfo(client, awsMinecraftServerInstance, {
+    ip: true,
+  });
 
-  if (instance_des.state == "running") {
+  if (instanceDes.state == "running") {
     return message.channel.send(
-      `Minecraft server already running at ${instance_des.ip}`
+      `Minecraft server already running at ${instanceDes.ip}`
     );
   }
 
-  if (instance_des.state == "stopping" || instance_des.state == "pending") {
+  if (instanceDes.state == "stopping" || instanceDes.state == "pending") {
     return message.channel.send("Something went wrong try again later!");
   }
 
@@ -33,17 +30,21 @@ module.exports.run = async (bot, message, args) => {
 
   await client.send(command);
 
-  instance_des = await getAwsState(client, awsMinecraftServerInstance, true);
+  instanceDes = await getAwsInfo(client, awsMinecraftServerInstance, {
+    ip: true,
+  });
 
-  while (instance_des.state == "pending") {
+  while (instanceDes.state == "pending") {
     await new Promise((resolve) => setTimeout(resolve, 5000));
 
-    getAwsState(client, awsMinecraftServerInstance, true).then((response) => {
-      instance_des = response;
-    });
+    getAwsInfo(client, awsMinecraftServerInstance, { ip: true }).then(
+      (response) => {
+        instanceDes = response;
+      }
+    );
   }
 
-  return message.channel.send(`Minecraft server started at ${instance_des.ip}`);
+  return message.channel.send(`Minecraft server started at ${instanceDes.ip}`);
 };
 
 module.exports.config = {
