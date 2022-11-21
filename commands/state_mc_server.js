@@ -29,7 +29,7 @@ module.exports.run = async (bot, message, args) => {
     emblem.addField("**Stopped Time**", `${stoppedDate.toLocaleString()}`);
     emblem.addField(
       "**Running Time**",
-      `${diff_hours(launchDate, stoppedDate)} Hours`
+      `${msToTime(stoppedDate - launchDate)}`
     );
   }
 
