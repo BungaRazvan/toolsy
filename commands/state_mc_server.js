@@ -1,24 +1,30 @@
-const { MessageEmbed } = require("discord.js");
+const { EmbedBuilder } = require("discord.js");
 
 const { awsMinecraftServerInstance } = require("./../json/constants.json");
 const { getAwsInfo } = require("../utils/aws");
-const { msToTime, diff_hours } = require("../utils/dates");
+const { msToTime } = require("../utils/dates");
 
 module.exports.run = async (bot, message, args) => {
   const instance = await getAwsInfo(null, awsMinecraftServerInstance, {
     all: true,
   });
-  const emblem = new MessageEmbed();
+  const emblem = new EmbedBuilder();
   const launchDate = instance.all.LaunchTime;
 
-  emblem.setColor(message.guild.me.displayHexColor);
-  emblem.addField("**State**:", `${instance.state}`);
+  emblem.setColor(message.member.displayHexColor);
+  emblem.addFields({ name: "**State**:", value: `${instance.state}` });
 
   if (instance.state == "running") {
-    emblem.addField("**Launch Time**:", `${launchDate.toLocaleString()}`);
-    emblem.addField(
-      "**Time Running**:",
-      `${msToTime(new Date() - launchDate)}`
+    emblem.addFields(
+      {
+        name: "**Launch Time**:",
+        value: `${launchDate.toLocaleString()}`,
+      },
+
+      {
+        name: "**Time Running**:",
+        value: `${msToTime(new Date() - launchDate)}`,
+      }
     );
   } else if (instance.state == "stopped") {
     const stringToArray = instance.all.StateTransitionReason.replace(
@@ -26,14 +32,17 @@ module.exports.run = async (bot, message, args) => {
       ""
     ).split(" ");
     const stoppedDate = new Date(`${stringToArray[2]}T${stringToArray[3]}`);
-    emblem.addField("**Stopped Time**", `${stoppedDate.toLocaleString()}`);
-    emblem.addField(
-      "**Running Time**",
-      `${msToTime(stoppedDate - launchDate)}`
+
+    emblem.addFields(
+      { name: "**Stopped Time**", value: `${stoppedDate.toLocaleString()}` },
+      {
+        name: "**Running Time**",
+        value: `${msToTime(stoppedDate - launchDate)}`,
+      }
     );
   }
 
-  return message.channel.send(emblem);
+  return message.channel.send({ embeds: [emblem] });
 };
 
 module.exports.config = {
