@@ -25,10 +25,7 @@ for (const command of files) {
 
     // The put method is used to fully refresh all commands in the guild with the current set
     const data = await rest.put(
-      Routes.applicationGuildCommands(
-        "1043585554849202237",
-        "496374699463409675"
-      ),
+      Routes.applicationCommands(process.env.BOT_CLIENT_ID),
       { body: slashCommands }
     );
 
