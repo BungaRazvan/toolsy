@@ -1,18 +1,16 @@
-const { MessageEmbed } = require("discord.js");
+const { EmbedBuilder } = require("discord.js");
 
 const json = require("../json/constants.json");
 
 module.exports.run = async (bot, message, args) => {
-  const helpEmbed = new MessageEmbed();
+  const helpEmbed = new EmbedBuilder();
 
   if (args[0] == "help") {
     return message.channel.send(`Just do ${json.prefix}help`);
   }
 
-  const img = message.guild.iconURL;
   helpEmbed
-    .setColor(message.guild.me.displayHexColor)
-    .setThumbnail(img)
+    .setColor(message.member.displayHexColor)
     .setDescription("These are the availble commands");
 
   let commands = bot.commands;
@@ -22,16 +20,28 @@ module.exports.run = async (bot, message, args) => {
     helpEmbed.setDescription("");
   }
 
-  commands.forEach((command) => {
-    helpEmbed.addField("**Command**: ", `${json.prefix}${command.config.name}`);
-    helpEmbed.addField(
-      "**Description**: ",
-      `${command.config.description}\n\n`
-    );
-    helpEmbed.addField("**Usage**: ", `${command.config.usage}\n\n`);
-  });
+  for (const [name, command] of commands) {
+    if (!command) {
+      continue;
+    }
 
-  return message.channel.send(helpEmbed);
+    helpEmbed.addFields(
+      {
+        name: "**Command**: ",
+        value: `${json.prefix}${name}`,
+      },
+      { name: "**Description**: ", value: `${command.config.description}\n\n` }
+    );
+
+    if (command.config.usage) {
+      helpEmbed.addFields({
+        name: "**Usage**: ",
+        value: `${command.config.usage}\n\n`,
+      });
+    }
+  }
+
+  message.channel.send({ embeds: [helpEmbed] });
 };
 
 module.exports.config = {

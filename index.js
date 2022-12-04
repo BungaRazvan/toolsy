@@ -1,50 +1,47 @@
-const Discord = require("discord.js");
-const fs = require("fs");
+const {
+  Events,
+  GatewayIntentBits,
+  Client,
+  Collection,
+  ActivityType,
+  ChannelType,
+} = require("discord.js");
+
+const path = require("path");
+
 const env = require("dotenv");
-
-const constants = require("./json/constants.json");
-const jsonRead = fs.readFileSync("./json/roles.json");
-const jsonFile = JSON.parse(jsonRead);
-
 env.config();
 
-const bot = new Discord.Client({
+const constants = require("./json/constants.json");
+
+const { readFiles } = require("./utils/files");
+const { queueIntervalPost } = require("./utils/interval");
+
+const db = require("./utils/db");
+const { QueueInterval } = require("./models/queue_picture");
+
+const bot = new Client({
   disableEveryone: true,
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
+  ],
 });
 
-bot.commands = new Discord.Collection();
+// Construct and prepare an instance of the REST module
 
-fs.readdir("./commands/", (err, files) => {
-  if (err) console.log(err);
+bot.commands = new Collection();
 
-  let jsfile = files.filter((f) => f.split(".").pop() === "js");
+const files = readFiles("./commands", { log: true });
 
-  if (jsfile.length <= 0) {
-    console.log("Couldn't find commands.");
-    return;
-  }
+for (const file of files) {
+  const { name, props } = file;
 
-  jsfile.forEach((f, i) => {
-    let props = require(`./commands/${f}`);
-    console.log(`${f} loaded!`);
-    bot.commands.set(props.config.name, props);
-  });
-});
+  bot.commands.set(name, props);
+}
 
-bot.on("guildMemberAdd", (member) => {
-  var guildId = member.guild.id;
-
-  if (!jsonFile[guildId]) {
-    console.log("Role could not be found");
-    return;
-  }
-
-  let autoRole = jsonFile[guildId];
-  let myRole = member.guild.roles.find((role) => role.name === autoRole.role);
-  member.addRole(myRole);
-});
-
-bot.on("message", async (message) => {
+bot.on(Events.MessageCreate, async (message) => {
   if (message.author.bot) {
     return;
   }
@@ -57,23 +54,93 @@ bot.on("message", async (message) => {
     return;
   }
 
-  let prefix = constants.prefix;
-  let messageArray = message.content.split(" ");
-  let cmd = messageArray[0];
-  let args = messageArray.slice(1);
+  const prefix = constants.prefix;
+  const messageArray = message.content.split(" ");
+  const cmd = messageArray[0];
+  const args = messageArray.slice(1);
 
-  let commandfile = bot.commands.get(cmd.slice(prefix.length));
+  const commandfile = bot.commands.get(cmd.slice(prefix.length));
 
-  if (commandfile) {
-    commandfile.run(bot, message, args);
+  if (!commandfile) {
+    return;
   }
+
+  commandfile.run(bot, message, args);
 });
 
 bot.on("ready", async () => {
   console.log(`${bot.user.username} is online`);
-  bot.user.setActivity(`a SEX TAPE`, {
-    type: "WATCHING",
+  let dbConn = false;
+
+  bot.user.setPresence({
+    activities: [
+      {
+        name: `a fight between two birds`,
+        type: ActivityType.Watching,
+      },
+    ],
   });
+
+  try {
+    await db.authenticate();
+    console.log("Connection has been established successfully.");
+    dbConn = true;
+  } catch (error) {
+    console.error("Unable to connect to the database:", error);
+  }
+
+  if (dbConn) {
+    queues = await QueueInterval.findAll();
+    const textChannels = [];
+
+    bot.channels.cache.each((channel) => {
+      if (channel.type == ChannelType.GuildText) {
+        textChannels.push(channel);
+      }
+    });
+
+    const folderPath = path.resolve("./imgs/qp");
+
+    queues.map((queue) => {
+      textChannels.map((channel) => {
+        if (channel.name == queue.qi_channel) {
+          queueIntervalPost(
+            60 * 100,
+            folderPath,
+            {
+              at: queue.qi_at,
+              name: queue.qi_name,
+              userId: queue.qi_user_id,
+              channelName: queue.qi_channel,
+            },
+            channel
+          );
+          console.log(
+            `Queued: ${queue.qi_name} on #${queue.qi_channel} at ${queue.qi_at} every day`
+          );
+        }
+      });
+    });
+  }
+});
+
+bot.on(Events.InteractionCreate, async (interaction) => {
+  if (!interaction.isChatInputCommand()) {
+    return;
+  }
+
+  const command = interaction.client.commands.get(interaction.commandName);
+
+  if (!command) {
+    interaction.reply("Unknown command");
+    return;
+  }
+
+  try {
+    await command.run(interaction);
+  } catch (err) {
+    console.error(err);
+  }
 });
 
 bot.login(process.env.BOT_TOKEN);
