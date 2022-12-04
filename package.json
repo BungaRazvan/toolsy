@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node deploy_commands && npm run index",
+    "start": "node deploy_commands && npm run index.js",
     "watch": "node deploy_commands.js && nodemon index.js"
   },
   "keywords": [],
