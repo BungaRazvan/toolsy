@@ -20,7 +20,7 @@ module.exports.queueIntervalPost = async (
     const [hourTrigger, minuteTrigger] =
       timeTrigger.length == 2 ? timeTrigger : [timeTrigger[0], 0];
 
-    if (hour != hourTrigger && minute != minuteTrigger) {
+    if (hour != hourTrigger || minute != minuteTrigger) {
       return;
     }
 
