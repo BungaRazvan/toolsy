@@ -105,7 +105,7 @@ bot.on("ready", async () => {
       textChannels.map((channel) => {
         if (channel.name == queue.qi_channel) {
           queueIntervalPost(
-            60 * 100,
+            60 * 1000,
             folderPath,
             {
               at: queue.qi_at,
