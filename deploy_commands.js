@@ -1,6 +1,6 @@
 const { REST } = require("@discordjs/rest");
 const { Routes } = require("discord-api-types/v10");
-const { readFiles } = require("./utils/files");
+const { readCommands } = require("./utils/files");
 
 const env = require("dotenv");
 env.config();
@@ -9,7 +9,7 @@ const slashCommands = [];
 const rest = new REST({ version: "10" }).setToken(process.env.BOT_TOKEN);
 
 // and deploy your commands!
-const files = readFiles("./commands", {
+const files = readCommands("./commands", {
   justSlashCommands: true,
 });
 

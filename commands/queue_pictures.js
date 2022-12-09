@@ -1,6 +1,4 @@
-const db = require("../utils/db");
-const { QueueInterval, QueuePicture } = require("../models/queue_picture");
-// const {} = require("../models/queue_picture");
+const { QueueInterval, QueuePicture } = require("../models/index");
 const { SlashCommandBuilder } = require("@discordjs/builders");
 const { ChannelType } = require("discord.js");
 const { queueIntervalPost } = require("./../utils/interval");
@@ -45,9 +43,6 @@ module.exports = {
     ),
 
   async run(interaction) {
-    const img =
-      "https://i.pximg.net/img-master/img/2022/12/04/18/46/31/103336104_p0_master1200.jpg";
-
     const channel = interaction.options.getChannel("channel");
     const name = interaction.options.getString("name").toLowerCase();
     const at = interaction.options.getString("at");

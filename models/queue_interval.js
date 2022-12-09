@@ -1,49 +1,39 @@
-const { Sequelize, DataTypes, Model } = require("sequelize");
-const db = require("../utils/db");
-const { QueuePicture } = require("./queue_picture");
+module.exports = (sequelize, DataTypes) => {
+  const QueueInterval = sequelize.define(
+    "QueueInterval",
+    {
+      qi_id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+      },
+      qi_user_id: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+      },
+      qi_name: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+      qi_created_at: {
+        type: DataTypes.DATE,
+        allowNull: false,
+        defaultValue: sequelize.fn("now"),
+      },
 
-class QueueInterval extends Model {}
+      qi_at: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+      qi_channel: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+    },
+    {
+      tableName: "queue_intervals",
+    }
+  );
 
-QueueInterval.init(
-  {
-    qi_id: {
-      type: DataTypes.INTEGER,
-      primaryKey: true,
-      autoIncrement: true,
-    },
-    qi_int_id: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
-    qi_user_id: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-    },
-    qi_name: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-    qi_created_at: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: Sequelize.fn("now"),
-    },
-
-    qi_at: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-    qi_channel: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-  },
-  {
-    sequelize: db,
-    modelName: "queue_intervals",
-  }
-);
-
-// QueueInterval.hasMany(QueuePicture, { foreignKey: "qi_id" });
-
-module.exports = QueueInterval;
+  return QueueInterval;
+};

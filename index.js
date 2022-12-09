@@ -14,11 +14,12 @@ env.config();
 
 const constants = require("./json/constants.json");
 
-const { readFiles } = require("./utils/files");
+const { readCommands } = require("./utils/files");
 const { queueIntervalPost } = require("./utils/interval");
 
 const db = require("./utils/db");
-const { QueueInterval } = require("./models/queue_picture");
+const model = require("./models/index");
+const { QueueInterval } = require("./models/index");
 
 const bot = new Client({
   disableEveryone: true,
@@ -33,7 +34,7 @@ const bot = new Client({
 
 bot.commands = new Collection();
 
-const files = readFiles("./commands", { log: true });
+const files = readCommands("./commands", { log: true });
 
 for (const file of files) {
   const { name, props } = file;

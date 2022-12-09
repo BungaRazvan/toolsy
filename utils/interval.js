@@ -1,7 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const pixivImg = require("pixiv-img");
-const { QueueInterval, QueuePicture } = require("../models/queue_picture");
+const { QueueInterval, QueuePicture } = require("../models/index");
 
 module.exports.queueIntervalPost = async (
   repeatTime,
