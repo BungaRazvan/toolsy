@@ -1,7 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 
-module.exports.readFiles = (filesFolder, args = {}) => {
+module.exports.readCommands = (filesFolder, args = {}) => {
   const functionArgs = {
     justSlashCommands: false,
     justCommnads: false,
@@ -42,4 +42,12 @@ module.exports.readFiles = (filesFolder, args = {}) => {
   }
 
   return commands;
+};
+
+module.exports.readFiles = (filesFolder, ext) => {
+  const files = fs
+    .readdirSync(path.resolve(filesFolder))
+    .filter((file) => file.endsWith(ext));
+
+  return files;
 };
