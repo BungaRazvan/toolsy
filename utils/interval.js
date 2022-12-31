@@ -2,11 +2,11 @@ const fs = require("fs");
 const path = require("path");
 const pixivImg = require("pixiv-img");
 const { QueueInterval, QueuePicture } = require("../models/index");
+
 const {
-  getAwsDatabaseConnections,
-  getRdsInfo,
-  toggleRdsInstance,
-} = require("./aws");
+  StartDBInstanceCommand,
+  StopDBInstanceCommand,
+} = require("@aws-sdk/client-rds");
 
 const queueIntervalPost = async (repeatTime, folderPath, filters, channel) => {
   // TODO Think of a way to clear this
@@ -78,25 +78,28 @@ const queueIntervalPost = async (repeatTime, folderPath, filters, channel) => {
   }, repeatTime);
 };
 
-const queueRdsStartStop = async (repeatTime, onTimes, rdsClient) => {
-  const today = new Date();
-  const hour = today.getHours();
-  const minute = today.getMinutes();
+const queueRdsStartStop = async (repeatTime, onHour, offHour, rdsClient) => {
+  setInterval(async () => {
+    const today = new Date();
+    const hour = today.getHours();
+    const identifier = process.env.DB_HOSTNAME.split(".")[0];
 
-  for (const { hourTrigger, minuteTrigger } of onTimes) {
-    // if we are pass the trigger do nothing
-    if (hour > hourTrigger) {
-      continue;
+    if (hour == onHour) {
+      await rdsClient.send(
+        new StartDBInstanceCommand({
+          DBInstanceIdentifier: identifier,
+        })
+      );
     }
 
-    if (minute == minuteTrigger - 5) {
-      toggleRdsInstance();
+    if (hour == offHour) {
+      await rdsClient.send(
+        new StopDBInstanceCommand({
+          DBInstanceIdentifier: identifier,
+        })
+      );
     }
-
-    if (minute == minuteTrigger + 5) {
-      toggleRdsInstance();
-    }
-  }
+  }, repeatTime);
 };
 
 module.exports.queueRdsStartStop = queueRdsStartStop;

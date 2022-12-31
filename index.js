@@ -11,6 +11,8 @@ const path = require("path");
 const env = require("dotenv");
 env.config();
 
+const { RDSClient } = require("@aws-sdk/client-rds");
+
 const constants = require("./json/constants.json");
 
 const { readCommands } = require("./utils/files");
@@ -73,7 +75,7 @@ bot.on("ready", async () => {
   console.log(`${bot.user.username} is online`);
 
   let dbConn = false;
-  const rdsClient = new RDSClient({ region: awsRegion });
+  const rdsClient = new RDSClient({ region: constants.awsRegion });
 
   bot.user.setPresence({
     activities: [
@@ -84,12 +86,8 @@ bot.on("ready", async () => {
     ],
   });
 
-  queueRdsStartStop(constants.everyMinuteInMs, [
-    {
-      hourTrigger: new Date().getHours(),
-      minuteTrigger: new Date().getMinutes() - 5,
-    },
-  ]);
+  // TODO Make sure deployments happen during db working hours
+  await queueRdsStartStop(60 * constants.everyMinuteInMs, 12, 22, rdsClient);
 
   try {
     await db.authenticate();
