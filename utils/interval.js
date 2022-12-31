@@ -2,13 +2,13 @@ const fs = require("fs");
 const path = require("path");
 const pixivImg = require("pixiv-img");
 const { QueueInterval, QueuePicture } = require("../models/index");
+const {
+  getAwsDatabaseConnections,
+  getRdsInfo,
+  toggleRdsInstance,
+} = require("./aws");
 
-module.exports.queueIntervalPost = async (
-  repeatTime,
-  folderPath,
-  filters,
-  channel
-) => {
+const queueIntervalPost = async (repeatTime, folderPath, filters, channel) => {
   // TODO Think of a way to clear this
   const interval = setInterval(async () => {
     const { channelName, name, userId, at } = filters;
@@ -77,3 +77,27 @@ module.exports.queueIntervalPost = async (
     });
   }, repeatTime);
 };
+
+const queueRdsStartStop = async (repeatTime, onTimes, rdsClient) => {
+  const today = new Date();
+  const hour = today.getHours();
+  const minute = today.getMinutes();
+
+  for (const { hourTrigger, minuteTrigger } of onTimes) {
+    // if we are pass the trigger do nothing
+    if (hour > hourTrigger) {
+      continue;
+    }
+
+    if (minute == minuteTrigger - 5) {
+      toggleRdsInstance();
+    }
+
+    if (minute == minuteTrigger + 5) {
+      toggleRdsInstance();
+    }
+  }
+};
+
+module.exports.queueRdsStartStop = queueRdsStartStop;
+module.exports.queueIntervalPost = queueIntervalPost;
