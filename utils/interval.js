@@ -3,12 +3,12 @@ const path = require("path");
 const pixivImg = require("pixiv-img");
 const { QueueInterval, QueuePicture } = require("../models/index");
 
-module.exports.queueIntervalPost = async (
-  repeatTime,
-  folderPath,
-  filters,
-  channel
-) => {
+const {
+  StartDBInstanceCommand,
+  StopDBInstanceCommand,
+} = require("@aws-sdk/client-rds");
+
+const queueIntervalPost = async (repeatTime, folderPath, filters, channel) => {
   // TODO Think of a way to clear this
   const interval = setInterval(async () => {
     const { channelName, name, userId, at } = filters;
@@ -77,3 +77,30 @@ module.exports.queueIntervalPost = async (
     });
   }, repeatTime);
 };
+
+const queueRdsStartStop = async (repeatTime, onHour, offHour, rdsClient) => {
+  setInterval(async () => {
+    const today = new Date();
+    const hour = today.getHours();
+    const identifier = process.env.DB_HOSTNAME.split(".")[0];
+
+    if (hour == onHour) {
+      await rdsClient.send(
+        new StartDBInstanceCommand({
+          DBInstanceIdentifier: identifier,
+        })
+      );
+    }
+
+    if (hour == offHour) {
+      await rdsClient.send(
+        new StopDBInstanceCommand({
+          DBInstanceIdentifier: identifier,
+        })
+      );
+    }
+  }, repeatTime);
+};
+
+module.exports.queueRdsStartStop = queueRdsStartStop;
+module.exports.queueIntervalPost = queueIntervalPost;

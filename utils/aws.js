@@ -2,7 +2,7 @@ const { awsRegion } = require("./../json/constants.json");
 
 const { EC2Client, DescribeInstancesCommand } = require("@aws-sdk/client-ec2");
 
-module.exports.getAwsInfo = async (client = null, instance, args = {}) => {
+const getAwsInfo = async (client = null, instance, args = {}) => {
   let awsClient = client;
   const responseArgs = {
     ip: false,
@@ -35,3 +35,5 @@ module.exports.getAwsInfo = async (client = null, instance, args = {}) => {
 
   return returnResponse;
 };
+
+module.exports.getAwsInfo = getAwsInfo;

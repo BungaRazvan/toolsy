@@ -4,7 +4,6 @@ const {
   Client,
   Collection,
   ActivityType,
-  ChannelType,
 } = require("discord.js");
 
 const path = require("path");
@@ -12,13 +11,16 @@ const path = require("path");
 const env = require("dotenv");
 env.config();
 
+const { RDSClient } = require("@aws-sdk/client-rds");
+
 const constants = require("./json/constants.json");
 
 const { readCommands } = require("./utils/files");
-const { queueIntervalPost } = require("./utils/interval");
+const { queueIntervalPost, queueRdsStartStop } = require("./utils/interval");
+const { dsGetTextChannelByName } = require("./utils/ds");
+const { toggleRdsInstance } = require("./utils/aws");
 
 const db = require("./utils/db");
-const model = require("./models/index");
 const { QueueInterval } = require("./models/index");
 
 const bot = new Client({
@@ -71,7 +73,9 @@ bot.on(Events.MessageCreate, async (message) => {
 
 bot.on("ready", async () => {
   console.log(`${bot.user.username} is online`);
+
   let dbConn = false;
+  const rdsClient = new RDSClient({ region: constants.awsRegion });
 
   bot.user.setPresence({
     activities: [
@@ -82,45 +86,43 @@ bot.on("ready", async () => {
     ],
   });
 
+  // TODO Make sure deployments happen during db working hours
+  await queueRdsStartStop(60 * constants.everyMinuteInMs, 12, 22, rdsClient);
+
   try {
     await db.authenticate();
     console.log("Connection has been established successfully.");
     dbConn = true;
   } catch (error) {
-    console.error("Unable to connect to the database:", error);
+    console.error("Unalbe to connect to the database:", error);
   }
 
   if (dbConn) {
     queues = await QueueInterval.findAll();
-    const textChannels = [];
-
-    bot.channels.cache.each((channel) => {
-      if (channel.type == ChannelType.GuildText) {
-        textChannels.push(channel);
-      }
-    });
 
     const folderPath = path.resolve("./imgs/qp");
 
     queues.map((queue) => {
-      textChannels.map((channel) => {
-        if (channel.name == queue.qi_channel) {
-          queueIntervalPost(
-            60 * 1000,
-            folderPath,
-            {
-              at: queue.qi_at,
-              name: queue.qi_name,
-              userId: queue.qi_user_id,
-              channelName: queue.qi_channel,
-            },
-            channel
-          );
-          console.log(
-            `Queued: ${queue.qi_name} on #${queue.qi_channel} at ${queue.qi_at} every day`
-          );
-        }
-      });
+      const channel = dsGetTextChannelByName(bot, queue.qi_channel);
+
+      if (!channel) {
+        return;
+      }
+
+      queueIntervalPost(
+        constants.everyMinuteInMs,
+        folderPath,
+        {
+          at: queue.qi_at,
+          name: queue.qi_name,
+          userId: queue.qi_user_id,
+          channelName: queue.qi_channel,
+        },
+        channel
+      );
+      console.log(
+        `Queued: ${queue.qi_name} on #${queue.qi_channel} at ${queue.qi_at} every day`
+      );
     });
   }
 });
