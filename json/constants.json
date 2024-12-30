@@ -1,7 +1,5 @@
 {
   "prefix": "!",
   "awsRegion": "eu-west-2",
-  "awsMinecraftServerInstance": "i-01b7ca562da6055dd",
-  "myUserId": "129334483282427905",
   "everyMinuteInMs": 60000
 }

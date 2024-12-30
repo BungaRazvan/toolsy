@@ -75,7 +75,7 @@ bot.on("ready", async () => {
   console.log(`${bot.user.username} is online`);
 
   let dbConn = false;
-  const rdsClient = new RDSClient({ region: constants.awsRegion });
+  // const rdsClient = new RDSClient({ region: constants.awsRegion });
 
   bot.user.setPresence({
     activities: [
@@ -87,15 +87,15 @@ bot.on("ready", async () => {
   });
 
   // TODO Make sure deployments happen during db working hours
-  await queueRdsStartStop(60 * constants.everyMinuteInMs, 12, 22, rdsClient);
+  // await queueRdsStartStop(60 * constants.everyMinuteInMs, 12, 22, rdsClient);
 
-  try {
-    await db.authenticate();
-    console.log("Connection has been established successfully.");
-    dbConn = true;
-  } catch (error) {
-    console.error("Unalbe to connect to the database:", error);
-  }
+  // try {
+  //   await db.authenticate();
+  //   console.log("Connection has been established successfully.");
+  //   dbConn = true;
+  // } catch (error) {
+  //   console.error("Unalbe to connect to the database:", error);
+  // }
 
   if (dbConn) {
     queues = await QueueInterval.findAll();
