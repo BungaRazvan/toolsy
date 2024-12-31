@@ -3,7 +3,7 @@ const { EC2Client, StartInstancesCommand } = require("@aws-sdk/client-ec2");
 const {
   awsRegion,
   awsMinecraftServerInstance,
-} = require("./../json/constants.json");
+} = require("../json/constants.json");
 
 const { getAwsInfo } = require("../utils/aws");
 

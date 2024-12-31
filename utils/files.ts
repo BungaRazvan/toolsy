@@ -1,7 +1,7 @@
-const fs = require("fs");
-const path = require("path");
+import fs from "fs";
+import path from "path";
 
-module.exports.readCommands = (filesFolder, args = {}) => {
+export const readCommands = (filesFolder: string, args = {}) => {
   const functionArgs = {
     justSlashCommands: false,
     justCommnads: false,
@@ -12,7 +12,7 @@ module.exports.readCommands = (filesFolder, args = {}) => {
 
   const commandFiles = fs
     .readdirSync(path.resolve(filesFolder))
-    .filter((file) => file.endsWith(".js"));
+    .filter((file) => file.endsWith(".ts"));
 
   for (const file of commandFiles) {
     const props = require(`${path.resolve(filesFolder, file)}`);
@@ -22,19 +22,12 @@ module.exports.readCommands = (filesFolder, args = {}) => {
       continue;
     }
 
-    if (functionArgs.justCommnads && !props.config?.slashCommand) {
+    if (functionArgs.justCommnads && !props.config.slashCommand) {
       commands.push({ name: props.config.name, props });
       continue;
     }
 
-    if (!functionArgs.justCommnads && !functionArgs.justSlashCommands) {
-      if (props.config.slashCommand) {
-        commands.push({ name: props.config.name, props });
-        continue;
-      }
-
-      commands.push({ name: props.config.name, props });
-    }
+    console.log(functionArgs.justCommnads, props.config.slashCommand, file);
 
     if (functionArgs.log) {
       console.log(`${file} loaded!`);
@@ -44,7 +37,7 @@ module.exports.readCommands = (filesFolder, args = {}) => {
   return commands;
 };
 
-module.exports.readFiles = (filesFolder, ext) => {
+export const readFiles = (filesFolder: string, ext: string) => {
   const files = fs
     .readdirSync(path.resolve(filesFolder))
     .filter((file) => file.endsWith(ext));

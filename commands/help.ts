@@ -1,12 +1,13 @@
 const { EmbedBuilder } = require("discord.js");
 
-const json = require("../json/constants.json");
+const env = require("dotenv");
+env.config();
 
-module.exports.run = async (bot, message, args) => {
+export const run = async (bot, message, args) => {
   const helpEmbed = new EmbedBuilder();
 
   if (args[0] == "help") {
-    return message.channel.send(`Just do ${json.prefix}help`);
+    return message.channel.send(`Just do ${process.env.prefix}help`);
   }
 
   helpEmbed
@@ -28,7 +29,7 @@ module.exports.run = async (bot, message, args) => {
     helpEmbed.addFields(
       {
         name: "**Command**: ",
-        value: `${json.prefix}${name}`,
+        value: `${process.env.prefix}${name}`,
       },
       { name: "**Description**: ", value: `${command.config.description}\n\n` }
     );
@@ -44,7 +45,7 @@ module.exports.run = async (bot, message, args) => {
   message.channel.send({ embeds: [helpEmbed] });
 };
 
-module.exports.config = {
+export const config = {
   name: "help",
   description: "List of all commands",
 };
