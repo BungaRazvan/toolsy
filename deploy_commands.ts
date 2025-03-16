@@ -8,14 +8,15 @@ env.config();
 const commandsData = Object.values(slashCommands).map(
   (command) => command.data
 );
-const rest = new REST({ version: "10" }).setToken(process.env.BOT_TOKEN!);
 
-console.log(commandsData);
+const rest = new REST({ version: "10" }).setToken(process.env.BOT_TOKEN!);
 
 const deplyCommands = async () => {
   try {
     console.log(
-      `Started refreshing ${slashCommands.length} application (/) commands.`
+      `Started refreshing ${
+        Object.keys(commandsData).length
+      } application (/) commands.`
     );
 
     // The put method is used to fully refresh all commands in the guild with the current set

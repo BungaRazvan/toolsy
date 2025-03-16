@@ -3,12 +3,8 @@ const { EmbedBuilder } = require("discord.js");
 const env = require("dotenv");
 env.config();
 
-export const run = async (bot, message, args) => {
+export const execute = async (bot, message, args) => {
   const helpEmbed = new EmbedBuilder();
-
-  if (args[0] == "help") {
-    return message.channel.send(`Just do ${process.env.prefix}help`);
-  }
 
   helpEmbed
     .setColor(message.member.displayHexColor)
@@ -48,4 +44,5 @@ export const run = async (bot, message, args) => {
 export const config = {
   name: "help",
   description: "List of all commands",
+  usage: "!help or !help other command",
 };

@@ -9,7 +9,7 @@ import {
 
 import env from "dotenv";
 
-import { normalCommands, slashCommands } from "./commands";
+import { slashCommands, normalCommands } from "./commands";
 
 env.config();
 
@@ -19,10 +19,16 @@ const bot = new Client({
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildVoiceStates,
   ],
 });
 
 bot.commands = new Collection();
+
+for (const [commandName, commandValues] of Object.entries(normalCommands)) {
+  console.log(`${commandName} loaded!`);
+  bot.commands.set(commandName, commandValues);
+}
 
 bot.on(Events.MessageCreate, async (message) => {
   if (message.author.bot) {
@@ -49,7 +55,7 @@ bot.on(Events.MessageCreate, async (message) => {
     return;
   }
 
-  commandfile.run(bot, message, args);
+  commandfile.execute(bot, message, args);
 });
 
 bot.on("ready", async () => {
@@ -66,19 +72,19 @@ bot.on("ready", async () => {
 });
 
 bot.on(Events.InteractionCreate, async (interaction) => {
-  if (!interaction.isChatInputCommand()) {
+  if (!interaction.isCommand()) {
     return;
   }
 
-  const command = interaction.client.commands.get(interaction.commandName);
+  const { commandName } = interaction;
 
-  if (!command) {
+  if (!commandName) {
     interaction.reply("Unknown command");
     return;
   }
 
   try {
-    await command.run(interaction);
+    await slashCommands[commandName].execute(interaction);
   } catch (err) {
     console.error(err);
   }
