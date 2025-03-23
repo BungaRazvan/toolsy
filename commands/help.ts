@@ -1,3 +1,5 @@
+import { normalCommands, slashCommands } from ".";
+
 const { EmbedBuilder } = require("discord.js");
 
 const env = require("dotenv");
@@ -10,30 +12,36 @@ export const execute = async (bot, message, args) => {
     .setColor(message.member.displayHexColor)
     .setDescription("These are the availble commands");
 
-  let commands = bot.commands;
+  let commands = {
+    ...normalCommands,
+    ...slashCommands,
+  };
 
-  if (args[0] && bot.commands.has(args[0])) {
-    commands = [bot.commands.get(args[0])];
-    helpEmbed.setDescription("");
-  }
+  // if (args[0] && bot.commands.has(args[0])) {
+  //   commands = [bot.commands.get(args[0])];
+  //   helpEmbed.setDescription("");
+  // }
 
-  for (const [name, command] of commands) {
-    if (!command) {
-      continue;
-    }
+  for (const command of Object.values(commands)) {
+    const name = command.config.name;
+    const description = command.config.description;
+    const usage = command.config.usage;
+    const isSlashCommand = command.config.slashCommand;
 
     helpEmbed.addFields(
       {
         name: "**Command**: ",
-        value: `${process.env.prefix}${name}`,
+        value: isSlashCommand
+          ? `/` + `${name}`
+          : `${process.env.prefix}` + `${name}`,
       },
-      { name: "**Description**: ", value: `${command.config.description}\n\n` }
+      { name: "**Description**: ", value: `${description}\n\n` }
     );
 
-    if (command.config.usage) {
+    if (usage) {
       helpEmbed.addFields({
         name: "**Usage**: ",
-        value: `${command.config.usage}\n\n`,
+        value: `${usage}\n\n`,
       });
     }
   }

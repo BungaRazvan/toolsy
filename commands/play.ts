@@ -5,7 +5,7 @@ import {
   getVoiceConnection,
   AudioPlayerStatus,
 } from "@discordjs/voice";
-import { songQueue, loopSong } from "../constants";
+import { songQueue } from "../constants";
 import { fetchTracks, playNext } from "../utils/youtube";
 
 export const config = {

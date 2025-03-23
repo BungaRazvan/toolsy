@@ -1,12 +1,10 @@
 import ytdl from "youtube-dl-exec";
 import { songQueue } from "../constants";
-import { CommandInteraction, Interaction } from "discord.js";
+import { CommandInteraction } from "discord.js";
 import {
   AudioPlayerStatus,
-  createAudioPlayer,
   createAudioResource,
   StreamType,
-  VoiceConnection,
 } from "@discordjs/voice";
 import { spawn } from "child_process";
 
@@ -75,7 +73,6 @@ export async function playNext(interaction: CommandInteraction) {
   }
 
   console.log("▶️ Now playing:", track.url);
-  serverQueue.isPlaying = true; // ✅ Prevent multiple messages
 
   const audio = spawn("yt-dlp", [
     "-f",
@@ -111,10 +108,12 @@ export async function playNext(interaction: CommandInteraction) {
 
     // Reset message flag for the next song
     serverQueue.hasAnnounced = false;
-    serverQueue.isPlaying = false;
 
     serverQueue.idleTimeout = setTimeout(() => {
-      serverQueue.index++;
+      if (!serverQueue.isLooping) {
+        serverQueue.index++;
+      }
+
       playNext(interaction);
     }, 5000);
   });
