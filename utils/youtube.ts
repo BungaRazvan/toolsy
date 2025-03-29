@@ -7,6 +7,7 @@ import {
   StreamType,
 } from "@discordjs/voice";
 import { spawn } from "child_process";
+import { checkAndDisconnect } from "./voice";
 
 type Track = {
   title: string;
@@ -93,7 +94,7 @@ export async function playNext(interaction: CommandInteraction) {
   serverQueue.player.play(resource);
 
   serverQueue.player.once(AudioPlayerStatus.Playing, async () => {
-    if (!serverQueue.hasAnnounced) {
+    if (!serverQueue.hasAnnounced && !serverQueue.isLooping) {
       await interaction.channel.send(`🎶 Now playing: ${track.url}`);
       serverQueue.hasAnnounced = true; // ✅ Prevent duplicate "Playing now" messages
     }
@@ -114,6 +115,7 @@ export async function playNext(interaction: CommandInteraction) {
         serverQueue.index++;
       }
 
+      checkAndDisconnect(interaction);
       playNext(interaction);
     }, 5000);
   });

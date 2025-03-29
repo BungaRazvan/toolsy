@@ -1,29 +1,35 @@
-import { VoiceConnection } from "@discordjs/voice";
+import { getVoiceConnection } from "@discordjs/voice";
 import { songQueue } from "../constants";
+import { CommandInteraction, VoiceChannel } from "discord.js";
 
-export function checkAndDisconnect(
-  guildId: string,
-  connection: VoiceConnection
-) {
-  const guild = connection.joinConfig.guildId;
-  const channel = connection.joinConfig.channelId;
+export function checkAndDisconnect(interaction: CommandInteraction) {
+  const connection = getVoiceConnection(interaction.guildId!);
 
-  if (!guild || !channel) return;
+  if (!connection) {
+    return;
+  }
 
-  const voiceChannel = interaction.client.guilds.cache
-    .get(guildId)
-    ?.channels.cache.get(channel);
+  const guild = interaction.client.guilds.cache.get(interaction.guildId!);
 
-  if (!voiceChannel) return;
+  if (!guild) {
+    return;
+  }
+
+  const voiceChannel = guild.channels.cache.get(
+    connection.joinConfig.channelId!
+  ) as VoiceChannel;
+
+  if (!voiceChannel) {
+    return;
+  }
+
+  if (voiceChannel.members.size > 1) {
+    return;
+  }
 
   // Check if bot is the only one left
-  if (voiceChannel.members.size === 1) {
-    console.log("👋 Leaving due to inactivity...");
-    setTimeout(() => {
-      if (voiceChannel.members.size === 1) {
-        connection.destroy();
-        songQueue.delete(guildId);
-      }
-    }, 60000); // 60 seconds before leaving
-  }
+  console.log("👋 Leaving due to inactivity...");
+
+  connection.destroy();
+  songQueue.delete(interaction.guildId!);
 }

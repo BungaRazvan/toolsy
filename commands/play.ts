@@ -84,7 +84,7 @@ export async function execute(interaction: CommandInteraction) {
 
     // Remove old deferred reply
     try {
-      await interaction.deleteReply();
+      await interaction.editReply("Songs Loaded");
     } catch (error) {
       console.warn("⚠️ No deferred reply to delete.");
     }
