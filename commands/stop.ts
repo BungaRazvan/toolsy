@@ -2,6 +2,7 @@ import { CommandInteraction, SlashCommandBuilder } from "discord.js";
 
 import { songQueue, loopSong } from "../constants";
 import { AudioPlayerStatus, getVoiceConnection } from "@discordjs/voice";
+import { checkAndDisconnect } from "../utils/voice";
 
 export const config = {
   name: "stop",
@@ -43,7 +44,10 @@ export async function execute(interaction: CommandInteraction) {
     guildQueue.player.state.status == AudioPlayerStatus.Playing &&
     guildQueue.player.state.status == AudioPlayerStatus.Buffering
   ) {
-    guildQueue.player.stop(true);
+    guildQueue.player.stop();
+    guildQueue.idleTimeout = setTimeout(() => {
+      checkAndDisconnect(interaction);
+    }, process.env.DC_IDLE);
     songQueue.delete(interaction.guildId);
   }
 

@@ -117,7 +117,7 @@ export async function playNext(interaction: CommandInteraction) {
 
       checkAndDisconnect(interaction);
       playNext(interaction);
-    }, 5000);
+    }, process.env.DC_IDLE);
   });
 
   serverQueue.player.on("error", (error) => {
