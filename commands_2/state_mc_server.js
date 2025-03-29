@@ -1,6 +1,6 @@
 const { EmbedBuilder } = require("discord.js");
 
-const { awsMinecraftServerInstance } = require("./../json/constants.json");
+const { awsMinecraftServerInstance } = require("../json/constants.json");
 const { getAwsInfo } = require("../utils/aws");
 const { msToTime } = require("../utils/dates");
 
