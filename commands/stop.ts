@@ -41,7 +41,7 @@ export async function execute(interaction: CommandInteraction) {
   const guildQueue = songQueue.get(guildId);
 
   if (
-    guildQueue.player.state.status == AudioPlayerStatus.Playing &&
+    guildQueue.player.state.status == AudioPlayerStatus.Playing ||
     guildQueue.player.state.status == AudioPlayerStatus.Buffering
   ) {
     guildQueue.player.stop();
@@ -49,7 +49,9 @@ export async function execute(interaction: CommandInteraction) {
       checkAndDisconnect(interaction);
     }, process.env.DC_IDLE);
     songQueue.delete(interaction.guildId);
+
+    return interaction.reply("⏹️ Stopped playback and cleared queue.");
   }
 
-  return interaction.reply("⏹️ Stopped playback and cleared queue.");
+  return interaction.reply("Failed to stop playback");
 }
