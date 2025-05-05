@@ -75,7 +75,7 @@ export async function execute(interaction: CommandInteraction) {
         .setDisabled(end >= serverQueue.tracks.length)
     );
 
-    return { songList, rows: [playRow, favRow, navRow] };
+    return { songList, rows: [playRow /* favRow */, , navRow] };
   };
 
   const { songList, rows } = getPageRows(page);

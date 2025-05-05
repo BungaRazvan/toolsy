@@ -10,6 +10,8 @@ import {
 import env from "dotenv";
 
 import { slashCommands, normalCommands } from "./commands";
+import { loadModels } from "./models";
+import sequelize from "./utils/db";
 
 env.config();
 
@@ -59,6 +61,9 @@ bot.on(Events.MessageCreate, async (message) => {
 });
 
 bot.on("ready", async () => {
+  loadModels();
+  sequelize.sync();
+
   console.log(`${bot.user.username} is online`);
 
   bot.user.setPresence({

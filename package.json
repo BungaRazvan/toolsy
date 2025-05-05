@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "s": "tsx deploy_commands.ts",
+    "commands": "tsx deploy_commands.ts",
     "dev": "tsx watch index.ts",
     "watch:commands": "chokidar './commands/**/*.ts' -c 'tsx deploy_commands.ts'",
     "start": "node dist/deploy_commands.js && dist/index.js",
@@ -21,6 +21,7 @@
     "dotenv": "8.2.0",
     "fs": "0.0.1-security",
     "sequelize": "^6.37.7",
+    "sequelize-typescript": "^2.1.6",
     "sqlite3": "^5.1.7",
     "youtube-dl-exec": "^3.0.19"
   },
