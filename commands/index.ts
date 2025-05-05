@@ -4,6 +4,7 @@ import * as help from "./help";
 import * as skip from "./skip";
 import * as stop from "./stop";
 import * as loop from "./loop";
+import * as list from "./list";
 
 const commands = {
   play,
@@ -11,6 +12,7 @@ const commands = {
   skip,
   stop,
   loop,
+  list,
 };
 
 const slashCommands = {};

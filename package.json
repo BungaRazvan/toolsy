@@ -8,7 +8,7 @@
     "dev": "tsx watch index.ts",
     "watch:commands": "chokidar './commands/**/*.ts' -c 'tsx deploy_commands.ts'",
     "start": "node dist/deploy_commands.js && dist/index.js",
-    "build": "tsup deploy_commands.js && tsup index.ts --minify"
+    "build": "tsup deploy_commands.ts && tsup index.ts --minify"
   },
   "keywords": [],
   "author": "Bunga Razvan",
@@ -17,9 +17,11 @@
     "@discordjs/builders": "1.4.0",
     "@discordjs/rest": "1.4.0",
     "@discordjs/voice": "^0.18.0",
-    "discord.js": "14.7",
+    "discord.js": "^14.19.3",
     "dotenv": "8.2.0",
     "fs": "0.0.1-security",
+    "sequelize": "^6.37.7",
+    "sqlite3": "^5.1.7",
     "youtube-dl-exec": "^3.0.19"
   },
   "devDependencies": {

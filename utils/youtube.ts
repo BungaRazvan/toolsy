@@ -38,6 +38,55 @@ export async function fetchTracks(url: string): Promise<Track[]> {
   });
 }
 
+// export async function fetchTracksByTitleMultiple(query: string): Promise<Track[]> {
+//   try {
+//     const result = await ytdl(`ytsearch5:${query}`, {
+//       dumpSingleJson: true,
+//       noPlaylist: true,
+//     });
+
+//     if (!result.entries || result.entries.length === 0) return [];
+
+//     return result.entries.map((entry) => ({
+//       title: entry.title,
+//       url: `https://www.youtube.com/watch?v=${entry.id}`,
+//     }));
+//   } catch (error) {
+//     console.error("❌ Error fetching tracks by title:", error);
+//     return [];
+//   }
+// }
+
+export async function fetchTracksByTitle(title: string): Promise<Track[]> {
+  return new Promise((resolve, reject) => {
+    ytdl(title, {
+      dumpSingleJson: true,
+      defaultSearch: "ytsearch",
+      // flatPlaylist: true,
+    })
+      .then((data) => {
+        console.log(data.entries.length);
+        if (data.entries && Array.isArray(data.entries)) {
+          // Multiple search results
+          const tracks = data.entries.map((entry) => ({
+            title: entry.title,
+            url: `https://www.youtube.com/watch?v=${entry.id}`,
+          }));
+          resolve(tracks);
+        } else {
+          // Single result
+          resolve([
+            {
+              title: data.title,
+              url: `https://www.youtube.com/watch?v=${data.id}`,
+            },
+          ]);
+        }
+      })
+      .catch(reject);
+  });
+}
+
 export async function playNext(interaction: CommandInteraction) {
   const serverQueue = songQueue.get(interaction.guildId);
 
