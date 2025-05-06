@@ -1,13 +1,17 @@
 import { Sequelize, DataTypes } from "sequelize";
 
 export default (sequelize: Sequelize) => {
-  return sequelize.define("Song", {
-    song: {
+  return sequelize.define("Playlist", {
+    name: {
       type: DataTypes.STRING,
       allowNull: false,
     },
-    playlist_id: {
-      type: DataTypes.INTEGER,
+    user_id: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    guild_id: {
+      type: DataTypes.STRING,
       allowNull: false,
     },
   });

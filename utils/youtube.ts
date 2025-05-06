@@ -1,9 +1,12 @@
 import ytdl from "youtube-dl-exec";
 import { songQueue } from "../constants";
-import { CommandInteraction } from "discord.js";
+import { ButtonInteraction, CommandInteraction } from "discord.js";
 import {
   AudioPlayerStatus,
+  createAudioPlayer,
   createAudioResource,
+  getVoiceConnection,
+  joinVoiceChannel,
   StreamType,
 } from "@discordjs/voice";
 import { spawn } from "child_process";
@@ -13,6 +16,19 @@ type Track = {
   title: string;
   url: string;
 };
+
+export async function fetchTracksByTitleOrUrl(song: string) {
+  const url = URL.canParse(song) ? new URL(song) : null;
+  let tracks = [];
+
+  if (url) {
+    tracks = await fetchTracks(url.href);
+  } else {
+    tracks = await fetchTracksByTitle(song);
+  }
+
+  return tracks;
+}
 
 export async function fetchTracks(url: string): Promise<Track[]> {
   return new Promise((resolve, reject) => {
@@ -65,7 +81,6 @@ export async function fetchTracksByTitle(title: string): Promise<Track[]> {
       // flatPlaylist: true,
     })
       .then((data) => {
-        console.log(data.entries.length);
         if (data.entries && Array.isArray(data.entries)) {
           // Multiple search results
           const tracks = data.entries.map((entry) => ({
@@ -87,7 +102,9 @@ export async function fetchTracksByTitle(title: string): Promise<Track[]> {
   });
 }
 
-export async function playNext(interaction: CommandInteraction) {
+export async function playNext(
+  interaction: CommandInteraction | ButtonInteraction
+) {
   const serverQueue = songQueue.get(interaction.guildId);
 
   if (!serverQueue) {
@@ -175,4 +192,64 @@ export async function playNext(interaction: CommandInteraction) {
     serverQueue.index++;
     playNext(interaction);
   });
+}
+
+export async function playQueue(
+  interaction: CommandInteraction | ButtonInteraction,
+  tracks: Track[]
+) {
+  const voiceChannel = interaction.member?.voice?.channel;
+
+  if (!voiceChannel) {
+    return;
+  }
+
+  const guildId = interaction.guildId;
+
+  let connection = getVoiceConnection(guildId!);
+
+  if (!connection) {
+    connection = joinVoiceChannel({
+      channelId: voiceChannel.id,
+      guildId: voiceChannel.guild.id,
+      adapterCreator: voiceChannel.guild.voiceAdapterCreator,
+    });
+  } else if (
+    connection &&
+    connection.joinConfig.channelId !== voiceChannel.id
+  ) {
+    return interaction.editReply(
+      "Song already playing on another voice channel"
+    );
+  }
+
+  if (!songQueue.has(guildId)) {
+    const player = createAudioPlayer();
+    connection.subscribe(player);
+    songQueue.set(guildId, {
+      tracks: [],
+      index: 0,
+      disconnectTimeout: null,
+      connection,
+      player,
+    });
+  }
+
+  const guildQueue = songQueue.get(guildId);
+  guildQueue.tracks.push(...tracks);
+
+  if (
+    guildQueue.player.state.status !== AudioPlayerStatus.Playing &&
+    guildQueue.player.state.status !== AudioPlayerStatus.Buffering
+  ) {
+    playNext(interaction);
+
+    try {
+      await interaction.editReply(`Songs ${tracks.length} Loaded`);
+    } catch (error) {
+      console.warn("⚠️ No deferred reply to delete.");
+    }
+  } else {
+    interaction.editReply(`Added to queue: ${tracks[0].title}`);
+  }
 }

@@ -75,7 +75,7 @@ export async function execute(interaction: CommandInteraction) {
         .setDisabled(end >= serverQueue.tracks.length)
     );
 
-    return { songList, rows: [playRow /* favRow */, , navRow] };
+    return { songList, rows: [playRow /* favRow */, navRow] };
   };
 
   const { songList, rows } = getPageRows(page);
@@ -92,8 +92,9 @@ export async function execute(interaction: CommandInteraction) {
   });
 
   collector.on("collect", async (i) => {
-    if (i.user.id !== interaction.user.id)
+    if (i.user.id !== interaction.user.id) {
       return i.reply({ content: "This menu isn't for you.", ephemeral: true });
+    }
 
     if (i.customId === "next") {
       page++;
