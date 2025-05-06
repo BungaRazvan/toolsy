@@ -5,6 +5,7 @@ import * as skip from "./skip";
 import * as stop from "./stop";
 import * as loop from "./loop";
 import * as list from "./list";
+import * as playlist from "./playlist";
 
 const commands = {
   play,
@@ -13,6 +14,7 @@ const commands = {
   stop,
   loop,
   list,
+  playlist,
 };
 
 const slashCommands = {};

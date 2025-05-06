@@ -21,6 +21,7 @@ export function loadModels() {
   }
 
   // Set up associations here (if any)
+  models.Song.belongsTo(models.Playlist, { foreignKey: "playlist_id" });
 }
 
 export default models;
