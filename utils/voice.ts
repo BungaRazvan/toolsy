@@ -1,6 +1,10 @@
 import { getVoiceConnection } from "@discordjs/voice";
 import { songQueue } from "../constants";
-import { CommandInteraction, VoiceChannel } from "discord.js";
+import {
+  ButtonInteraction,
+  CommandInteraction,
+  VoiceChannel,
+} from "discord.js";
 
 export function checkCanPlay(interaction: CommandInteraction, song: string) {
   const url = URL.canParse(song) ? new URL(song) : null;
@@ -16,7 +20,9 @@ export function checkCanPlay(interaction: CommandInteraction, song: string) {
   }
 }
 
-export function checkAndDisconnect(interaction: CommandInteraction) {
+export function checkAndDisconnect(
+  interaction: CommandInteraction | ButtonInteraction
+) {
   const connection = getVoiceConnection(interaction.guildId!);
 
   if (!connection) {

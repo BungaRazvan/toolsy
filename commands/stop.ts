@@ -47,7 +47,7 @@ export async function execute(interaction: CommandInteraction) {
     guildQueue.player.stop();
     guildQueue.idleTimeout = setTimeout(() => {
       checkAndDisconnect(interaction);
-    }, process.env.DC_IDLE);
+    }, Number(process.env.DC_IDLE) || 30000);
     songQueue.delete(interaction.guildId);
 
     return interaction.reply("⏹️ Stopped playback and cleared queue.");

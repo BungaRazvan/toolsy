@@ -126,7 +126,7 @@ export async function playNext(
         serverQueue.connection.destroy();
         songQueue.delete(interaction.guildId);
       }
-    }, Number(process.env.DC_IDLE) || 30000); // Default: 30 sec timeout
+    }, Number(process.env.DC_IDLE) || 30000);
     return;
   }
 
@@ -183,7 +183,7 @@ export async function playNext(
 
       checkAndDisconnect(interaction);
       playNext(interaction);
-    }, 5000);
+    }, Number(process.env.DC_IDLE) || 30000);
   });
 
   serverQueue.player.on("error", (error) => {
