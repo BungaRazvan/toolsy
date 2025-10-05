@@ -1,7 +1,6 @@
 import { SlashCommandBuilder, CommandInteraction } from "discord.js";
 
 import { fetchTracksByTitleOrUrl, playQueue } from "../utils/youtube";
-import { checkCanPlay } from "../utils/voice";
 
 export const config = {
   name: "play",

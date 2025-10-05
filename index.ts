@@ -15,7 +15,8 @@ import sequelize from "./utils/db";
 import { songQueue } from "./constants";
 import { fetchTracksByTitleOrUrl, playQueue } from "./utils/youtube";
 import { createPlaylistModal } from "./utils/playlist";
-import song from "./models/song";
+
+import Sentry from "@sentry/node";
 
 env.config();
 
@@ -68,6 +69,11 @@ bot.on("ready", async () => {
   loadModels();
   sequelize.sync();
 
+  Sentry.init({
+    enabled: process.env.ENV !== "dev",
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.ENV,
+  });
   console.log(`${bot.user.username} is online`);
 
   bot.user.setPresence({
@@ -253,7 +259,21 @@ bot.on(Events.InteractionCreate, async (interaction) => {
   try {
     await slashCommands[commandName].execute(interaction);
   } catch (err) {
-    console.error(err);
+    console.log(err);
+
+    Sentry.captureException(err);
+
+    if (interaction.replied || interaction.deferred) {
+      await interaction.followUp({
+        content: "⚠️ An error occurred while running that command.",
+        ephemeral: true,
+      });
+    } else {
+      await interaction.reply({
+        content: "⚠️ An error occurred while running that command.",
+        ephemeral: true,
+      });
+    }
   }
 });
 
