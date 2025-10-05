@@ -3,4 +3,5 @@
 .env
 /imgs/qp/*.jpg
 --Frag*
-database.sqlite
+*.sqlite
+*.tar
