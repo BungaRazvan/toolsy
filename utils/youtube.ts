@@ -24,82 +24,29 @@ export async function fetchTracksByTitleOrUrl(song: string) {
   if (url) {
     tracks = await fetchTracks(url.href);
   } else {
-    tracks = await fetchTracksByTitle(song);
+    tracks = await fetchTracks(null, song);
   }
 
   return tracks;
 }
 
-export async function fetchTracks(url: string): Promise<Track[]> {
-  return new Promise((resolve, reject) => {
-    ytdl(url, {
-      dumpSingleJson: true,
-      flatPlaylist: true, // Get URLs only
-    })
-      .then((data) => {
-        if (data.entries) {
-          // If it's a playlist
-          resolve(
-            data.entries.map((entry) => ({
-              title: entry.title,
-              url: entry.url,
-            }))
-          );
-        } else {
-          // Single video
-          resolve([{ title: data.title, url: url }]);
-        }
-      })
-      .catch(reject);
-  });
-}
+export async function fetchTracks(
+  url: string | null = null,
+  title: string | null = null
+): Promise<Track[]> {
+  let params = null;
 
-// export async function fetchTracksByTitleMultiple(query: string): Promise<Track[]> {
-//   try {
-//     const result = await ytdl(`ytsearch5:${query}`, {
-//       dumpSingleJson: true,
-//       noPlaylist: true,
-//     });
+  if (url) {
+    params = new URLSearchParams({ url });
+  } else {
+    params = new URLSearchParams({ title });
+  }
 
-//     if (!result.entries || result.entries.length === 0) return [];
+  const response = await fetch(
+    `${process.env.API_URL}/discord/get-youtube-tracks?${params}`
+  );
 
-//     return result.entries.map((entry) => ({
-//       title: entry.title,
-//       url: `https://www.youtube.com/watch?v=${entry.id}`,
-//     }));
-//   } catch (error) {
-//     console.error("❌ Error fetching tracks by title:", error);
-//     return [];
-//   }
-// }
-
-export async function fetchTracksByTitle(title: string): Promise<Track[]> {
-  return new Promise((resolve, reject) => {
-    ytdl(title, {
-      dumpSingleJson: true,
-      defaultSearch: "ytsearch",
-      // flatPlaylist: true,
-    })
-      .then((data) => {
-        if (data.entries && Array.isArray(data.entries)) {
-          // Multiple search results
-          const tracks = data.entries.map((entry) => ({
-            title: entry.title,
-            url: `https://www.youtube.com/watch?v=${entry.id}`,
-          }));
-          resolve(tracks);
-        } else {
-          // Single result
-          resolve([
-            {
-              title: data.title,
-              url: `https://www.youtube.com/watch?v=${data.id}`,
-            },
-          ]);
-        }
-      })
-      .catch(reject);
-  });
+  return response.json();
 }
 
 export async function playNext(

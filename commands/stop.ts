@@ -1,6 +1,6 @@
 import { CommandInteraction, SlashCommandBuilder } from "discord.js";
 
-import { songQueue, loopSong } from "../constants";
+import { songQueue } from "../constants";
 import { AudioPlayerStatus, getVoiceConnection } from "@discordjs/voice";
 import { checkAndDisconnect } from "../utils/voice";
 
