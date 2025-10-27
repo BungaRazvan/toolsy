@@ -7,6 +7,7 @@ import {
   ComponentType,
 } from "discord.js";
 import { songQueue } from "../constants";
+import { playNext } from "../utils/youtube";
 
 export const config = {
   name: "list",
@@ -107,7 +108,9 @@ export async function execute(interaction: CommandInteraction) {
         content: `▶️ Playing **${serverQueue.tracks[index].title}**`,
         components: [],
       });
-      return; // let playNext() logic handle the rest
+      serverQueue.hasAnnounced = false;
+      playNext(interaction);
+      return;
     } else if (i.customId.startsWith("fav_")) {
       const index = parseInt(i.customId.split("_")[1]);
       const track = serverQueue.tracks[index];
