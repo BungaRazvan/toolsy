@@ -197,6 +197,14 @@ export async function playQueue(
       console.warn("⚠️ No deferred reply to delete.");
     }
   } else {
+    if (tracks.length > 1) {
+      return interaction.editReply(`Added to queue: ${tracks.length} songs`);
+    }
+
+    if (!tracks.length) {
+      return interaction.editReply("No valid tracks found.");
+    }
+
     interaction.editReply(`Added to queue: ${tracks[0].title}`);
   }
 }

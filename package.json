@@ -21,9 +21,6 @@
     "discord.js": "^14.19.3",
     "dotenv": "8.2.0",
     "fs": "0.0.1-security",
-    "sequelize": "^6.37.7",
-    "sequelize-typescript": "^2.1.6",
-    "sqlite3": "^5.1.7",
     "youtube-dl-exec": "^3.0.19"
   },
   "devDependencies": {
