@@ -5,18 +5,20 @@ import {
   Collection,
   ActivityType,
   ChannelType,
+  Interaction,
+  CacheType,
+  MessageFlags,
 } from "discord.js";
 
 import env from "dotenv";
 
 import { slashCommands, normalCommands } from "./commands";
-import models, { loadModels } from "./models";
-import sequelize from "./utils/db";
 import { songQueue } from "./constants";
-import { fetchTracksByTitleOrUrl, playQueue } from "./utils/youtube";
+import { playQueue } from "./utils/youtube";
 import { createPlaylistModal } from "./utils/playlist";
 
 import Sentry from "@sentry/node";
+import { apiCall } from "./utils/api";
 
 env.config();
 
@@ -31,6 +33,7 @@ const bot = new Client({
 });
 
 bot.commands = new Collection();
+const isDEV = process.env.ENV === "dev";
 
 for (const [commandName, commandValues] of Object.entries(normalCommands)) {
   console.log(`${commandName} loaded!`);
@@ -66,11 +69,8 @@ bot.on(Events.MessageCreate, async (message) => {
 });
 
 bot.on("ready", async () => {
-  loadModels();
-  sequelize.sync();
-
   Sentry.init({
-    enabled: process.env.ENV !== "dev",
+    enabled: !isDEV,
     dsn: process.env.SENTRY_DSN,
     environment: process.env.ENV,
   });
@@ -86,25 +86,36 @@ bot.on("ready", async () => {
   });
 });
 
-bot.on(Events.InteractionCreate, async (interaction) => {
+const executeInteraction = async (interaction: Interaction<CacheType>) => {
   const isButton = interaction.isButton();
 
   if (isButton && interaction.customId.includes("playlist_delete")) {
     const playlistId = interaction.customId.split("::")[1];
 
-    const playlist = await models.Playlist.findOne({
-      where: {
-        id: playlistId,
+    const response = await apiCall(
+      "delete",
+      "youtube-playlist",
+      {
+        playlist_id: playlistId,
         user_id: interaction.user.id,
         guild_id: interaction.guildId,
       },
-    });
+      {
+        useAPIKey: true,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
 
-    await models.Song.destroy({
-      where: { playlist_id: playlist.id },
-    });
+    if (!response.ok) {
+      await interaction.reply({
+        content: await response.text(),
+        ephemeral: true,
+      });
+      return;
+    }
 
-    await playlist.destroy();
     await interaction.reply({
       content: `✅ Deleted playlist`,
       ephemeral: true,
@@ -114,22 +125,32 @@ bot.on(Events.InteractionCreate, async (interaction) => {
   if (isButton && interaction.customId.includes("playlist_edit")) {
     const playlistId = interaction.customId.split("::")[1];
 
-    const playlist = await models.Playlist.findOne({
-      where: {
-        id: playlistId,
-        user_id: interaction.user.id,
-        guild_id: interaction.guildId,
-      },
-    });
+    const response = await apiCall(
+      "get",
+      "youtube-playlist",
+      new URLSearchParams({
+        playlist_id: playlistId as string,
+        user_id: interaction.user.id as string,
+        guild_id: interaction.guildId as string,
+      }),
+      { useAPIKey: true }
+    );
 
-    const songs = await models.Song.findAll({
-      where: { playlist_id: playlist.id },
-    });
+    if (!response.ok) {
+      await await interaction.reply({
+        content: await response.text(),
+        ephemeral: true,
+      });
+      return;
+    }
 
-    const songsUrls = songs.map((s) => s.song);
+    const data = await response.json();
+    const playlist = data.playlists[0];
+
+    const songsUrls = playlist.songs;
 
     const modal = createPlaylistModal(
-      `modal_edit_playlist::${playlist.id}`,
+      `modal_edit_playlist::${playlistId}`,
       "Edit Playlist",
       playlist.name,
       songsUrls.join(",")
@@ -143,29 +164,56 @@ bot.on(Events.InteractionCreate, async (interaction) => {
     const voiceChannel = interaction.member?.voice?.channel;
 
     if (!voiceChannel) {
-      return interaction.reply("You must be in a voice channel!");
+      return interaction.reply({
+        content: "You must be in a voice channel!",
+        flags: MessageFlags.Ephemeral,
+      });
     }
 
     const playlistId = interaction.customId.split("::")[1];
-    const songs = await models.Song.findAll({
-      where: { playlist_id: playlistId },
-    });
 
-    await interaction.deferReply();
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-    const trackResults = await Promise.all(
-      songs.map(async (s) => await fetchTracksByTitleOrUrl(s.song))
+    const response = await apiCall(
+      "get",
+      "youtube-playlist",
+      new URLSearchParams({
+        playlist_id: playlistId as string,
+        user_id: interaction.user.id as string,
+        guild_id: interaction.guildId as string,
+        play_mode: "true",
+      }),
+      { useAPIKey: true }
     );
 
-    const tracks = trackResults.flat();
+    if (!response.ok) {
+      await interaction.editReply({
+        content: await response.text(),
+      });
+      return;
+    }
+
+    const data = await response.json();
+    const playlist = data.playlists[0];
 
     if (songQueue.has(guildId)) {
       const guildQueue = songQueue.get(guildId);
       guildQueue.tracks = [];
       guildQueue.index = 0;
+      guildQueue.hasAnnounced = false;
+
+      if (guildQueue.player) {
+        guildQueue.player.state.status = null;
+      }
     }
 
-    playQueue(interaction, tracks);
+    playQueue(interaction, playlist.songs);
+
+    await interaction.followUp({
+      content: `✅ Playing Playlist ${playlist.name}`,
+    });
+
+    return;
   }
 
   if (isButton && interaction.customId == "playlist_create") {
@@ -184,62 +232,74 @@ bot.on(Events.InteractionCreate, async (interaction) => {
       const playlistSongs =
         interaction.fields.getTextInputValue("playlist_songs");
 
-      const playlist = await models.Playlist.create({
-        name: playlistName,
-        user_id: interaction.user.id,
-        guild_id: interaction.guildId,
-      });
-
-      await models.Song.bulkCreate(
-        playlistSongs.split(",").map((song) => {
-          return {
-            song: song,
-            playlist_id: playlist.id,
-          };
-        })
+      const response = await apiCall(
+        "post",
+        "youtube-playlist",
+        {
+          playlist_name: playlistName,
+          playlist_songs: playlistSongs,
+          guild_id: interaction.guildId,
+          user_id: interaction.user.id,
+        },
+        {
+          useAPIKey: true,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
       );
 
-      await interaction.reply({
-        content: `✅ Created playlist: **${playlistName}**`,
+      if (response.ok) {
+        await interaction.reply({
+          content: `✅ Created playlist: **${playlistName}**`,
+          ephemeral: true,
+        });
+
+        return;
+      }
+
+      await await interaction.reply({
+        content: await response.text(),
         ephemeral: true,
       });
     }
 
     if (interaction.customId.includes("modal_edit_playlist")) {
       const playlistId = interaction.customId.split("::")[1];
-
-      const playlist = await models.Playlist.findOne({
-        where: {
-          id: playlistId,
-          user_id: interaction.user.id,
-          guild_id: interaction.guildId,
-        },
-      });
-
+      const playlistSongs =
+        interaction.fields.getTextInputValue("playlist_songs");
       const playlistName =
         interaction.fields.getTextInputValue("playlist_name");
 
-      const playlistSongs =
-        interaction.fields.getTextInputValue("playlist_songs");
-
-      playlist.name = playlistName;
-      await playlist.save();
-
-      await models.Song.destroy({
-        where: { playlist_id: playlist.id },
-      });
-
-      await models.Song.bulkCreate(
-        playlistSongs.split(",").map((song) => {
-          return {
-            song: song,
-            playlist_id: playlist.id,
-          };
-        })
+      const response = await apiCall(
+        "put",
+        "youtube-playlist",
+        {
+          playlist_id: playlistId,
+          playlist_songs: playlistSongs,
+          playlist_name: playlistName,
+          guild_id: interaction.guildId,
+          user_id: interaction.user.id,
+        },
+        {
+          useAPIKey: true,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
       );
 
-      await interaction.reply({
-        content: `✅ Playlist Edited`,
+      if (response.ok) {
+        await interaction.reply({
+          content: `✅ Playlist Edited`,
+          ephemeral: true,
+        });
+
+        return;
+      }
+
+      await await interaction.reply({
+        content: await response.text(),
         ephemeral: true,
       });
     }
@@ -256,23 +316,39 @@ bot.on(Events.InteractionCreate, async (interaction) => {
     return;
   }
 
+  await slashCommands[commandName].execute(interaction);
+};
+
+bot.on(Events.InteractionCreate, async (interaction) => {
   try {
-    await slashCommands[commandName].execute(interaction);
+    await executeInteraction(interaction);
   } catch (err) {
-    console.log(err);
+    if (isDEV) {
+      console.error(err);
+    }
 
     Sentry.captureException(err);
 
-    if (interaction.replied || interaction.deferred) {
-      await interaction.followUp({
-        content: "⚠️ An error occurred while running that command.",
-        ephemeral: true,
-      });
-    } else {
-      await interaction.reply({
-        content: "⚠️ An error occurred while running that command.",
-        ephemeral: true,
-      });
+    const fallbackMsg = {
+      content: "⚠️ An error occurred while running that command.",
+    };
+
+    // safe fallback
+
+    try {
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply(fallbackMsg).catch((e) => {});
+      } else {
+        await interaction.followUp(fallbackMsg).catch((e) => {
+          console.error("Failed followUp in error handler:", e);
+        });
+      }
+    } catch (finalErr) {
+      if (isDEV) {
+        console.error("Final fallback failed:", finalErr);
+      }
+
+      Sentry.captureException(finalErr);
     }
   }
 });

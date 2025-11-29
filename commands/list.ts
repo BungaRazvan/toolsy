@@ -5,6 +5,7 @@ import {
   ButtonStyle,
   ActionRowBuilder,
   ComponentType,
+  MessageFlags,
 } from "discord.js";
 import { songQueue } from "../constants";
 import { playNext } from "../utils/youtube";
@@ -25,13 +26,14 @@ export async function execute(interaction: CommandInteraction) {
   const serverQueue = songQueue.get(guildId);
 
   if (!serverQueue || serverQueue.tracks.length === 0) {
-    return await interaction.reply(
-      "There are no songs currently in the queue."
-    );
+    return await interaction.reply({
+      content: "There are no songs currently in the queue.",
+      flags: MessageFlags.Ephemeral,
+    });
   }
 
   const pageSize = 5;
-  let page = 0;
+  let page = Math.floor((serverQueue.index ?? 0) / pageSize);
 
   const getPageRows = (page: number) => {
     const start = page * pageSize;
@@ -81,20 +83,24 @@ export async function execute(interaction: CommandInteraction) {
 
   const { songList, rows } = getPageRows(page);
 
-  await interaction.reply({
+  const replyMessage = await interaction.reply({
     content: `**Currently queued songs (Page ${page + 1})**:\n\n${songList}`,
     components: rows,
-    ephemeral: true,
+    flags: MessageFlags.Ephemeral,
   });
 
-  const collector = interaction.channel!.createMessageComponentCollector({
+  const collector = replyMessage.createMessageComponentCollector({
     componentType: ComponentType.Button,
     time: 120_000,
+    filter: (i) => i.user.id === interaction.user.id,
   });
 
   collector.on("collect", async (i) => {
     if (i.user.id !== interaction.user.id) {
-      return i.reply({ content: "This menu isn't for you.", ephemeral: true });
+      return i.reply({
+        content: "This menu isn't for you.",
+        flags: MessageFlags.Ephemeral,
+      });
     }
 
     if (i.customId === "next") {
@@ -116,7 +122,7 @@ export async function execute(interaction: CommandInteraction) {
       const track = serverQueue.tracks[index];
       await i.reply({
         content: `⭐ You starred: **${track.title}**`,
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }

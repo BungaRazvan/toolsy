@@ -6,8 +6,9 @@ import {
   ActionRowBuilder,
   ComponentType,
   StringSelectMenuBuilder,
+  MessageFlags,
 } from "discord.js";
-import models from "../models";
+import { apiCall } from "../utils/api";
 
 export const config = {
   name: "playlist",
@@ -21,9 +22,27 @@ export const data = new SlashCommandBuilder()
   .setDescription(config.description);
 
 export async function execute(interaction: CommandInteraction) {
-  const playlists = await models.Playlist.findAll({
-    where: { user_id: interaction.user.id, guild_id: interaction.guild?.id },
-  });
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+  const response = await apiCall(
+    "get",
+    "youtube-playlist",
+    new URLSearchParams({
+      user_id: interaction.user.id as string,
+      guild_id: interaction.guild?.id as string,
+    }),
+    { useAPIKey: true }
+  );
+
+  let playlistsData = null;
+
+  try {
+    playlistsData = await response.json();
+  } catch {
+    interaction.reply("An error occured!");
+    return;
+  }
+
+  const playlists = playlistsData.playlists || [];
 
   const options = playlists.map((playlist) => {
     return {
@@ -75,20 +94,22 @@ export async function execute(interaction: CommandInteraction) {
       .setDisabled(true)
   );
 
-  await interaction.reply({
+  const msg = await interaction.editReply({
     content: "🎛️ Manage your playlists:",
     components: [selectRow, buttonRow],
-    ephemeral: true,
   });
 
-  const collector = interaction.channel!.createMessageComponentCollector({
+  const collector = msg.createMessageComponentCollector({
     componentType: ComponentType.StringSelect,
-    time: 120_000,
+    time: 8000,
+    filter: (i) => i.message.id === msg.id && i.user.id === interaction.user.id,
   });
 
   collector.on("collect", async (i) => {
     if (i.user.id !== interaction.user.id) {
-      return i.reply({ content: "This menu isn't for you.", ephemeral: true });
+      return i.editReply({
+        content: "This menu isn't for you.",
+      });
     }
 
     if (i.isStringSelectMenu() && i.customId === "playlist_select") {
@@ -117,10 +138,22 @@ export async function execute(interaction: CommandInteraction) {
 
       const option = options.find((option) => option.value == i.values[0]);
       // Update the message to reflect the new button state
-      await i.update({
-        content: `▶️ Selected: **${option?.label}**`,
-        components: [i.message.components[0], updatedButtons],
-      });
+
+      try {
+        await i.update({
+          content: `▶️ Selected: **${option?.label}**`,
+          components: [i.message.components[0], updatedButtons],
+        });
+      } catch (err) {
+        console.warn("Failed to update interaction:", err.message);
+        // Optional: edit the original slash command message instead
+        await interaction
+          .editReply({
+            content: `▶️ Selected: **${option?.label}**`,
+            components: [i.message.components[0], updatedButtons],
+          })
+          .catch(() => {});
+      }
 
       return;
     }
