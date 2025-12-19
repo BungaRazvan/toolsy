@@ -6,6 +6,7 @@ import * as stop from "./stop";
 import * as loop from "./loop";
 import * as list from "./list";
 import * as playlist from "./playlist";
+import * as mc_stats from "./mc_stats";
 
 const commands = {
   play,
@@ -15,6 +16,7 @@ const commands = {
   loop,
   list,
   playlist,
+  mc_stats,
 };
 
 const slashCommands = {};
