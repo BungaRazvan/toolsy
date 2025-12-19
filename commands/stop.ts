@@ -45,7 +45,7 @@ export async function execute(interaction: CommandInteraction) {
     guildQueue.player.state.status == AudioPlayerStatus.Buffering
   ) {
     guildQueue.player.stop();
-    guildQueue.idleTimeout = setTimeout(() => {
+    guildQueue.disconnectTimeout = setTimeout(() => {
       checkAndDisconnect(interaction);
     }, Number(process.env.DC_IDLE) || 30000);
     songQueue.delete(interaction.guildId);
