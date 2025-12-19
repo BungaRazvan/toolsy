@@ -13,7 +13,11 @@ export async function apiCall(
   let url = `${process.env.API_URL}/${path}/${endpoint}`;
   let requestBody = body;
 
-  if (!headers["Content-Type"] && method.toUpperCase() === "GET") {
+  if (
+    !headers["Content-Type"] &&
+    method.toUpperCase() === "GET" &&
+    body != null
+  ) {
     url += `?${body}`;
     requestBody = null;
   }

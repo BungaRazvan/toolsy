@@ -258,7 +258,7 @@ const executeInteraction = async (interaction: Interaction<CacheType>) => {
         return;
       }
 
-      await await interaction.reply({
+      await interaction.reply({
         content: await response.text(),
         ephemeral: true,
       });
@@ -298,7 +298,7 @@ const executeInteraction = async (interaction: Interaction<CacheType>) => {
         return;
       }
 
-      await await interaction.reply({
+      await interaction.reply({
         content: await response.text(),
         ephemeral: true,
       });

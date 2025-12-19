@@ -1,9 +1,6 @@
 import { normalCommands, slashCommands } from ".";
 
-const { EmbedBuilder } = require("discord.js");
-
-const env = require("dotenv");
-env.config();
+import { EmbedBuilder } from "discord.js";
 
 export const execute = async (bot, message, args) => {
   const helpEmbed = new EmbedBuilder();

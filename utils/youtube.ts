@@ -127,7 +127,6 @@ export async function playNext(
       if (!serverQueue.isLooping) {
         serverQueue.index++;
       }
-
       checkAndDisconnect(interaction);
       playNext(interaction);
     }, Number(process.env.DC_IDLE) || 30000);
