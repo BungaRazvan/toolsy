@@ -8,7 +8,8 @@
     "dev": "tsx watch index.ts",
     "watch:commands": "chokidar './commands/**/*.ts' -c 'tsx deploy_commands.ts'",
     "start": "node dist/deploy_commands.js && dist/index.js",
-    "build": "tsup deploy_commands.ts && tsup index.ts --minify"
+    "build": "tsup deploy_commands.ts && tsup index.ts --minify",
+    "test": "jest"
   },
   "keywords": [],
   "author": "Bunga Razvan",
@@ -25,8 +26,11 @@
     "youtube-dl-exec": "^3.0.19"
   },
   "devDependencies": {
+    "@types/jest": "^30.0.0",
     "chokidar-cli": "^3.0.0",
+    "jest": "^30.2.0",
     "prettier": "2.8.0",
+    "ts-jest": "^29.4.6",
     "tsup": "^8.3.5",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"

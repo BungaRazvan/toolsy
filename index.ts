@@ -75,6 +75,7 @@ bot.on("ready", async () => {
     environment: process.env.ENV,
   });
   console.log(`${bot.user.username} is online`);
+  console.log(`Bot is in ${bot.guilds.cache.size} servers`);
 
   bot.user.setPresence({
     activities: [
