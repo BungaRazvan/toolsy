@@ -1,5 +1,10 @@
 import { songQueue } from "../constants";
-import { ButtonInteraction, CommandInteraction } from "discord.js";
+import {
+  ButtonInteraction,
+  CommandInteraction,
+  Interaction,
+  ModalSubmitInteraction,
+} from "discord.js";
 import {
   AudioPlayerStatus,
   createAudioPlayer,
@@ -11,7 +16,7 @@ import {
 import { spawn } from "child_process";
 import { shouldDisconnect } from "./voice";
 
-type Track = {
+export type Track = {
   title: string;
   url: string;
 };
@@ -50,7 +55,7 @@ export async function fetchTracks(
 }
 
 export async function playNext(
-  interaction: CommandInteraction | ButtonInteraction
+  interaction: CommandInteraction | ModalSubmitInteraction
 ) {
   const serverQueue = songQueue.get(interaction.guildId);
 
@@ -148,7 +153,7 @@ export async function playNext(
 }
 
 export async function playQueue(
-  interaction: CommandInteraction | ButtonInteraction,
+  interaction: CommandInteraction | ModalSubmitInteraction,
   tracks: Track[]
 ) {
   // @ts-ignore

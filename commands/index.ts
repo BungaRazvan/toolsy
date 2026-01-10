@@ -1,4 +1,5 @@
-// import * as play from "./play";
+import { SlashCommandOptionsOnlyBuilder } from "discord.js";
+
 import * as play from "./play";
 import * as help from "./help";
 import * as skip from "./skip";
@@ -8,7 +9,24 @@ import * as list from "./list";
 import * as playlist from "./playlist";
 import * as mc_stats from "./mc_stats";
 
-const commands = {
+type CommnadConfig = {
+  name: string;
+  description: string;
+  usage: string;
+  slashCommand?: boolean;
+};
+
+interface CustomCommand {
+  config: CommnadConfig;
+  execute: Function;
+  data?: SlashCommandOptionsOnlyBuilder;
+}
+
+interface CommandsCollection {
+  [key: string]: CustomCommand;
+}
+
+const commands: CommandsCollection = {
   play,
   help,
   skip,
@@ -19,8 +37,8 @@ const commands = {
   mc_stats,
 };
 
-const slashCommands = {};
-const normalCommands = {};
+const slashCommands: CommandsCollection = {};
+const normalCommands: CommandsCollection = {};
 
 for (const [commandName, commandValues] of Object.entries(commands)) {
   if (commandValues.config?.slashCommand) {
@@ -31,4 +49,4 @@ for (const [commandName, commandValues] of Object.entries(commands)) {
   normalCommands[commandName] = commandValues;
 }
 
-export { slashCommands, normalCommands };
+export { slashCommands, normalCommands, CustomCommand, CommandsCollection };

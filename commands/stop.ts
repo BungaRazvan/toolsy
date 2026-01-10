@@ -2,7 +2,7 @@ import { CommandInteraction, SlashCommandBuilder } from "discord.js";
 
 import { songQueue } from "../constants";
 import { AudioPlayerStatus, getVoiceConnection } from "@discordjs/voice";
-import { checkAndDisconnect } from "../utils/voice";
+import { shouldDisconnect } from "../utils/voice";
 
 export const config = {
   name: "stop",
@@ -16,6 +16,7 @@ export const data = new SlashCommandBuilder()
   .setDescription(config.description);
 
 export async function execute(interaction: CommandInteraction) {
+  // @ts-ignore
   const voiceChannel = interaction.member?.voice?.channel;
 
   if (!voiceChannel) {
@@ -23,8 +24,7 @@ export async function execute(interaction: CommandInteraction) {
   }
 
   const guildId = interaction.guildId;
-
-  let connection = getVoiceConnection(guildId!);
+  const connection = getVoiceConnection(guildId!);
 
   if (!connection) {
     return;
@@ -46,7 +46,11 @@ export async function execute(interaction: CommandInteraction) {
   ) {
     guildQueue.player.stop();
     guildQueue.disconnectTimeout = setTimeout(() => {
-      checkAndDisconnect(interaction);
+      if (shouldDisconnect(interaction)) {
+        const connection = getVoiceConnection(interaction.guildId!)!;
+        connection.destroy();
+        songQueue.delete(interaction.guildId!);
+      }
     }, Number(process.env.DC_IDLE) || 30000);
     songQueue.delete(interaction.guildId);
 

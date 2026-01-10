@@ -35,16 +35,11 @@ export async function execute(interaction: CommandInteraction) {
 
   let playlistsData = null;
 
-  try {
-    playlistsData = await response.json();
-  } catch {
-    interaction.reply("An error occured!");
-    return;
-  }
+  playlistsData = await response.json();
 
   const playlists = playlistsData.playlists || [];
 
-  const options = playlists.map((playlist) => {
+  const options = playlists.map((playlist: any) => {
     return {
       label: playlist.name,
       description: undefined,
@@ -136,7 +131,7 @@ export async function execute(interaction: CommandInteraction) {
             .setStyle(ButtonStyle.Danger)
         );
 
-      const option = options.find((option) => option.value == i.values[0]);
+      const option = options.find((option: any) => option.value == i.values[0]);
       // Update the message to reflect the new button state
 
       try {
@@ -144,7 +139,7 @@ export async function execute(interaction: CommandInteraction) {
           content: `▶️ Selected: **${option?.label}**`,
           components: [i.message.components[0], updatedButtons],
         });
-      } catch (err) {
+      } catch (err: any) {
         console.warn("Failed to update interaction:", err.message);
         // Optional: edit the original slash command message instead
         await interaction

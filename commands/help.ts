@@ -2,7 +2,7 @@ import { normalCommands, slashCommands } from ".";
 
 import { EmbedBuilder } from "discord.js";
 
-export const execute = async (bot, message, args) => {
+export const execute = async (bot: any, message: any, args: any) => {
   const helpEmbed = new EmbedBuilder();
 
   helpEmbed

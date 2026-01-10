@@ -14,6 +14,7 @@ export const data = new SlashCommandBuilder()
   .setDescription(config.description);
 
 export async function execute(interaction: CommandInteraction) {
+  // @ts-ignore
   const voiceChannel = interaction.member?.voice?.channel;
 
   if (!voiceChannel) {

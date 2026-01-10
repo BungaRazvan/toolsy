@@ -1,7 +1,7 @@
 import { getVoiceConnection } from "@discordjs/voice";
 import {
-  ButtonInteraction,
   CommandInteraction,
+  ModalSubmitInteraction,
   VoiceChannel,
 } from "discord.js";
 
@@ -21,7 +21,7 @@ export function checkCanPlay(interaction: CommandInteraction, song: string) {
 }
 
 export function shouldDisconnect(
-  interaction: CommandInteraction | ButtonInteraction
+  interaction: CommandInteraction | ModalSubmitInteraction
 ) {
   const connection = getVoiceConnection(interaction.guildId!);
 
