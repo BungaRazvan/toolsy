@@ -22,7 +22,9 @@ export const data = new SlashCommandBuilder()
   );
 
 export async function execute(interaction: CommandInteraction) {
+  // @ts-ignore
   const voiceChannel = interaction.member?.voice?.channel;
+  // @ts-ignore
   let number = interaction.options.getInteger("number");
   let skip_no = 1;
 

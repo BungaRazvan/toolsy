@@ -20,6 +20,7 @@ export const data = new SlashCommandBuilder()
   );
 
 export async function execute(interaction: CommandInteraction) {
+  // @ts-ignore
   const song = interaction.options.getString("song");
 
   const url = URL.canParse(song) ? new URL(song) : null;
@@ -28,6 +29,7 @@ export async function execute(interaction: CommandInteraction) {
     return interaction.reply("You must provinde a yotube url");
   }
 
+  // @ts-ignore
   const voiceChannel = interaction.member?.voice?.channel;
 
   if (!voiceChannel) {

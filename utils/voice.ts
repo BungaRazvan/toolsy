@@ -1,8 +1,7 @@
 import { getVoiceConnection } from "@discordjs/voice";
-import { songQueue } from "../constants";
 import {
-  ButtonInteraction,
   CommandInteraction,
+  ModalSubmitInteraction,
   VoiceChannel,
 } from "discord.js";
 
@@ -10,9 +9,10 @@ export function checkCanPlay(interaction: CommandInteraction, song: string) {
   const url = URL.canParse(song) ? new URL(song) : null;
 
   if (url && url.hostname != "www.youtube.com") {
-    return interaction.reply("You must provinde a yotube url");
+    return interaction.reply("You must provinde a youtube url");
   }
 
+  // @ts-ignore
   const voiceChannel = interaction.member?.voice?.channel;
 
   if (!voiceChannel) {
@@ -20,19 +20,19 @@ export function checkCanPlay(interaction: CommandInteraction, song: string) {
   }
 }
 
-export function checkAndDisconnect(
-  interaction: CommandInteraction | ButtonInteraction
+export function shouldDisconnect(
+  interaction: CommandInteraction | ModalSubmitInteraction
 ) {
   const connection = getVoiceConnection(interaction.guildId!);
 
   if (!connection) {
-    return;
+    return false;
   }
 
   const guild = interaction.client.guilds.cache.get(interaction.guildId!);
 
   if (!guild) {
-    return;
+    return false;
   }
 
   const voiceChannel = guild.channels.cache.get(
@@ -40,16 +40,13 @@ export function checkAndDisconnect(
   ) as VoiceChannel;
 
   if (!voiceChannel) {
-    return;
-  }
-
-  if (voiceChannel.members.size > 1) {
-    return;
+    return false;
   }
 
   // Check if bot is the only one left
-  console.log("👋 Leaving due to inactivity...");
+  if (voiceChannel.members.size > 1) {
+    return false;
+  }
 
-  connection.destroy();
-  songQueue.delete(interaction.guildId!);
+  return true;
 }

@@ -1,6 +1,10 @@
-import ytdl from "youtube-dl-exec";
 import { songQueue } from "../constants";
-import { ButtonInteraction, CommandInteraction } from "discord.js";
+import {
+  ButtonInteraction,
+  CommandInteraction,
+  Interaction,
+  ModalSubmitInteraction,
+} from "discord.js";
 import {
   AudioPlayerStatus,
   createAudioPlayer,
@@ -10,9 +14,9 @@ import {
   StreamType,
 } from "@discordjs/voice";
 import { spawn } from "child_process";
-import { checkAndDisconnect } from "./voice";
+import { shouldDisconnect } from "./voice";
 
-type Track = {
+export type Track = {
   title: string;
   url: string;
 };
@@ -39,6 +43,7 @@ export async function fetchTracks(
   if (url) {
     params = new URLSearchParams({ url });
   } else {
+    // @ts-ignore
     params = new URLSearchParams({ title });
   }
 
@@ -50,7 +55,7 @@ export async function fetchTracks(
 }
 
 export async function playNext(
-  interaction: CommandInteraction | ButtonInteraction
+  interaction: CommandInteraction | ModalSubmitInteraction
 ) {
   const serverQueue = songQueue.get(interaction.guildId);
 
@@ -61,26 +66,22 @@ export async function playNext(
   // Prevent duplicate event listeners
   serverQueue.player.removeAllListeners(AudioPlayerStatus.Idle);
 
-  if (serverQueue.disconnectTimeout) {
-    clearTimeout(serverQueue.disconnectTimeout);
-  }
-
   // If queue is empty, destroy connection and exit
   if (serverQueue.index >= serverQueue.tracks.length) {
-    console.log("⏹️ No more songs. Leaving voice channel...");
     serverQueue.disconnectTimeout = setTimeout(() => {
       if (serverQueue.connection?.state.status !== "destroyed") {
         serverQueue.connection.destroy();
         songQueue.delete(interaction.guildId);
+        console.log("⏹️ No more songs. Leaving voice channel...");
       }
     }, Number(process.env.DC_IDLE) || 30000);
     return;
   }
 
-  const track = serverQueue.tracks[serverQueue.index];
+  const track = serverQueue.tracks[serverQueue.index]!;
 
   // Skip invalid tracks
-  if (!track?.url || (track.title && track.title.includes("Deleted"))) {
+  if (!track.url || (track.title && track.title.includes("Deleted"))) {
     console.warn("⚠️ Skipping invalid track:", track.title);
     serverQueue.index++;
     return playNext(interaction);
@@ -108,12 +109,14 @@ export async function playNext(
 
   serverQueue.player.once(AudioPlayerStatus.Playing, async () => {
     if (!serverQueue.hasAnnounced && !serverQueue.isLooping) {
-      await interaction.channel.send(`🎶 Now playing: ${track.url}`);
+      // @ts-ignore
+      await interaction.channel!.send(`🎶 Now playing: ${track.url}`);
       serverQueue.hasAnnounced = true; // ✅ Prevent duplicate "Playing now" messages
     }
 
-    if (serverQueue.idleTimeout) {
-      clearTimeout(serverQueue.idleTimeout);
+    if (serverQueue.disconnectTimeout) {
+      clearTimeout(serverQueue.disconnectTimeout);
+      serverQueue.disconnectTimeout = null;
     }
   });
 
@@ -123,27 +126,37 @@ export async function playNext(
     // Reset message flag for the next song
     serverQueue.hasAnnounced = false;
 
-    serverQueue.idleTimeout = setTimeout(() => {
+    serverQueue.disconnectTimeout = setTimeout(() => {
       if (!serverQueue.isLooping) {
         serverQueue.index++;
       }
-      checkAndDisconnect(interaction);
+
+      if (shouldDisconnect(interaction)) {
+        const connection = getVoiceConnection(interaction.guildId!)!;
+        connection.destroy();
+        songQueue.delete(interaction.guildId!);
+        console.log("👋 Leaving due to inactivity...");
+        return;
+      }
+
       playNext(interaction);
     }, Number(process.env.DC_IDLE) || 30000);
   });
 
-  serverQueue.player.on("error", (error) => {
+  serverQueue.player.on("error", (error: any) => {
     console.error("❌ Audio player error:", error);
-    interaction.channel.send(`⚠️ Error playing: ${track.url}. Skipping...`);
+    // @ts-ignore
+    interaction.channel!.send(`⚠️ Error playing: ${track.url}. Skipping...`);
     serverQueue.index++;
     playNext(interaction);
   });
 }
 
 export async function playQueue(
-  interaction: CommandInteraction | ButtonInteraction,
+  interaction: CommandInteraction | ModalSubmitInteraction,
   tracks: Track[]
 ) {
+  // @ts-ignore
   const voiceChannel = interaction.member?.voice?.channel;
 
   if (!voiceChannel) {

@@ -26,6 +26,7 @@ const deplyCommands = async () => {
     );
 
     console.log(
+      // @ts-ignore
       `Successfully reloaded ${data.length} application (/) commands.`
     );
   } catch (error) {

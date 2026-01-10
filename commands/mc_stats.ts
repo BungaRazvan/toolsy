@@ -20,6 +20,8 @@ async function fetchMCStats(quild_id: string) {
   if (response.ok) {
     return response.json();
   }
+
+  return [];
 }
 
 export const data = new SlashCommandBuilder()
@@ -31,7 +33,7 @@ export async function execute(interaction: CommandInteraction) {
 
   const stats = await fetchMCStats(interaction.guildId!);
 
-  const embeds = stats.map((p) => {
+  const embeds = stats.map((p: any) => {
     const date = new Date(p.timestamp);
     const formattedDate = `${date.getUTCDate()} ${date.toLocaleString("en-US", {
       month: "short",
@@ -57,6 +59,10 @@ export async function execute(interaction: CommandInteraction) {
       )
       .setFooter({ text: `📊 Stats at ${formattedDate}` });
   });
+
+  if (!embeds.length) {
+    return interaction.editReply({ message: "No stats" });
+  }
 
   return interaction.editReply({ embeds });
 }

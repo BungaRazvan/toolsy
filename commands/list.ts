@@ -8,7 +8,7 @@ import {
   MessageFlags,
 } from "discord.js";
 import { songQueue } from "../constants";
-import { playNext } from "../utils/youtube";
+import { playNext, Track } from "../utils/youtube";
 
 export const config = {
   name: "list",
@@ -41,17 +41,19 @@ export async function execute(interaction: CommandInteraction) {
     const tracks = serverQueue.tracks.slice(start, end);
 
     const songList = tracks
-      .map((track, index) => `${start + index + 1}. ${track.title}`)
+      .map(
+        (track: Track, index: number) => `${start + index + 1}. ${track.title}`
+      )
       .join("\n");
 
-    const playButtons = tracks.map((_, i) =>
+    const playButtons = tracks.map((_: any, i: number) =>
       new ButtonBuilder()
         .setCustomId(`play_${start + i}`)
         .setLabel(`▶️ ${start + i + 1}`)
         .setStyle(ButtonStyle.Secondary)
     );
 
-    const favButtons = tracks.map((_, i) =>
+    const favButtons = tracks.map((_: any, i: number) =>
       new ButtonBuilder()
         .setCustomId(`fav_${start + i}`)
         .setLabel(`⭐ ${start + i + 1}`)
