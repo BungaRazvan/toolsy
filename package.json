@@ -22,7 +22,7 @@
     "discord.js": "^14.19.3",
     "dotenv": "8.2.0",
     "fs": "0.0.1-security",
-    "lodash": "^4.17.21",
+    "lodash": "^4.17.23",
     "youtube-dl-exec": "^3.0.19"
   },
   "devDependencies": {
