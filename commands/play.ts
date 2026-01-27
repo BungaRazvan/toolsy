@@ -16,7 +16,7 @@ export const data = new SlashCommandBuilder()
     option
       .setName("song")
       .setDescription("Youtube video url or title")
-      .setRequired(true)
+      .setRequired(true),
   );
 
 export async function execute(interaction: CommandInteraction) {
@@ -37,8 +37,13 @@ export async function execute(interaction: CommandInteraction) {
   }
 
   await interaction.deferReply();
+  let tracks = [];
 
-  const tracks = await fetchTracksByTitleOrUrl(song);
+  try {
+    tracks = await fetchTracksByTitleOrUrl(song);
+  } catch {
+    return interaction.editReply("No valid tracks found.");
+  }
 
   if (!tracks.length) {
     return interaction.editReply("No valid tracks found.");

@@ -1,4 +1,8 @@
-import { CommandInteraction, SlashCommandBuilder } from "discord.js";
+import {
+  CommandInteraction,
+  SlashCommandBuilder,
+  MessageFlags,
+} from "discord.js";
 
 import { getVoiceConnection } from "@discordjs/voice";
 import { playNext } from "../utils/youtube";
@@ -18,7 +22,7 @@ export const data = new SlashCommandBuilder()
     option
       .setName("number")
       .setDescription("Number of songs to skip")
-      .setRequired(false)
+      .setRequired(false),
   );
 
 export async function execute(interaction: CommandInteraction) {
@@ -29,44 +33,56 @@ export async function execute(interaction: CommandInteraction) {
   let skip_no = 1;
 
   if (!voiceChannel) {
-    return;
+    return interaction.reply({
+      content: "Not connected to voice channel",
+      flags: MessageFlags.Ephemeral,
+    });
   }
 
   const guildId = interaction.guildId;
-
-  let connection = getVoiceConnection(guildId!);
+  const connection = getVoiceConnection(guildId!);
 
   if (!connection) {
-    return;
+    return interaction.reply({
+      content: "Bot not connected to voice channel",
+      flags: MessageFlags.Ephemeral,
+    });
   }
 
   if (connection && connection.joinConfig.channelId !== voiceChannel.id) {
-    return;
+    return interaction.reply({
+      content: "Bot not connected to the correct voice channel",
+      flags: MessageFlags.Ephemeral,
+    });
   }
 
   if (number) {
     skip_no = Number(number);
   }
 
-  await interaction.deferReply();
-
   const serverQueue = songQueue.get(interaction.guildId);
 
   if (!serverQueue) {
-    return;
+    return interaction.reply({
+      content: "No songs",
+      flags: MessageFlags.Ephemeral,
+    });
   }
 
   const index = serverQueue.index + skip_no;
 
+  console.log(serverQueue.tracks.length, index);
   if (index > serverQueue.tracks.length) {
-    interaction.reply(
-      `Skip number ${index} is greater then the length of the playlist: ${serverQueue.tracks.length}`
-    );
-    return;
+    return interaction.reply({
+      content: `Skip number ${index} is greater then the length of the playlist: ${serverQueue.tracks.length}`,
+      flags: MessageFlags.Ephemeral,
+    });
   }
 
   serverQueue.index = index;
   serverQueue.hasAnnounced = false;
+
+  await interaction.deferReply();
   playNext(interaction);
 
   // Remove old deferred reply

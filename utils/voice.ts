@@ -4,6 +4,7 @@ import {
   ModalSubmitInteraction,
   VoiceChannel,
 } from "discord.js";
+import { songQueue } from "../constants";
 
 export function checkCanPlay(interaction: CommandInteraction, song: string) {
   const url = URL.canParse(song) ? new URL(song) : null;
@@ -21,9 +22,10 @@ export function checkCanPlay(interaction: CommandInteraction, song: string) {
 }
 
 export function shouldDisconnect(
-  interaction: CommandInteraction | ModalSubmitInteraction
+  interaction: CommandInteraction | ModalSubmitInteraction,
 ) {
   const connection = getVoiceConnection(interaction.guildId!);
+  const serverQueue = songQueue.get(interaction.guildId);
 
   if (!connection) {
     return false;
@@ -36,15 +38,19 @@ export function shouldDisconnect(
   }
 
   const voiceChannel = guild.channels.cache.get(
-    connection.joinConfig.channelId!
+    connection.joinConfig.channelId!,
   ) as VoiceChannel;
 
   if (!voiceChannel) {
     return false;
   }
 
-  // Check if bot is the only one left
-  if (voiceChannel.members.size > 1) {
+  if (
+    voiceChannel.members.size > 1 &&
+    serverQueue &&
+    serverQueue.index < serverQueue.tracks.length
+  ) {
+    // Check if bot is the only one left
     return false;
   }
 

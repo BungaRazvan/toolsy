@@ -36,7 +36,7 @@ export async function fetchTracksByTitleOrUrl(song: string) {
 
 export async function fetchTracks(
   url: string | null = null,
-  title: string | null = null
+  title: string | null = null,
 ): Promise<Track[]> {
   let params = null;
 
@@ -48,14 +48,14 @@ export async function fetchTracks(
   }
 
   const response = await fetch(
-    `${process.env.API_URL}/discord/get-youtube-tracks?${params}`
+    `${process.env.API_URL}/discord/get-youtube-tracks?${params}`,
   );
 
   return response.json();
 }
 
 export async function playNext(
-  interaction: CommandInteraction | ModalSubmitInteraction
+  interaction: CommandInteraction | ModalSubmitInteraction,
 ) {
   const serverQueue = songQueue.get(interaction.guildId);
 
@@ -66,15 +66,16 @@ export async function playNext(
   // Prevent duplicate event listeners
   serverQueue.player.removeAllListeners(AudioPlayerStatus.Idle);
 
-  // If queue is empty, destroy connection and exit
-  if (serverQueue.index >= serverQueue.tracks.length) {
+  // make sure index not > than songs list
+  if (serverQueue.index > serverQueue.tracks.length) {
+    // @ts-ignore
+    interaction.channel.send("⚠️ No more songs. Leaving Soon");
+
     serverQueue.disconnectTimeout = setTimeout(() => {
-      if (serverQueue.connection?.state.status !== "destroyed") {
-        serverQueue.connection.destroy();
-        songQueue.delete(interaction.guildId);
-        console.log("⏹️ No more songs. Leaving voice channel...");
-      }
-    }, Number(process.env.DC_IDLE) || 30000);
+      serverQueue.connection.destroy();
+      songQueue.delete(interaction.guildId);
+      console.log("⏹️ No more songs. Leaving voice channel...");
+    }, Number(process.env.DC_IDLE));
     return;
   }
 
@@ -89,23 +90,31 @@ export async function playNext(
 
   console.log("▶️ Now playing:", track.url);
 
-  const audio = spawn("yt-dlp", [
-    "-f",
-    "bestaudio",
-    "-o",
-    "-",
-    "--no-playlist",
-    "--quiet",
-    "--default-search",
-    "ytsearch",
-    track.url,
-  ]);
+  try {
+    const audio = spawn("yt-dlp", [
+      "-f",
+      "bestaudio",
+      "-o",
+      "-",
+      "--no-playlist",
+      "--quiet",
+      "--default-search",
+      "ytsearch",
+      track.url,
+    ]);
 
-  const resource = createAudioResource(audio.stdout, {
-    inputType: StreamType.Arbitrary,
-  });
+    const resource = createAudioResource(audio.stdout, {
+      inputType: StreamType.Arbitrary,
+    });
 
-  serverQueue.player.play(resource);
+    serverQueue.player.play(resource);
+  } catch {
+    // @ts-ignore
+    interaction.channel.send("⚠️ Failed to play song");
+    serverQueue.index++;
+    playNext(interaction);
+    return;
+  }
 
   serverQueue.player.once(AudioPlayerStatus.Playing, async () => {
     if (!serverQueue.hasAnnounced && !serverQueue.isLooping) {
@@ -132,15 +141,20 @@ export async function playNext(
       }
 
       if (shouldDisconnect(interaction)) {
-        const connection = getVoiceConnection(interaction.guildId!)!;
-        connection.destroy();
+        if (serverQueue.index >= serverQueue.tracks.length) {
+          // @ts-ignore
+          interaction.channel.send("⚠️ No more songs. Leaving Soon");
+        } else {
+          console.log("👋 Leaving due to inactivity...");
+        }
+
+        serverQueue.connection.destroy();
         songQueue.delete(interaction.guildId!);
-        console.log("👋 Leaving due to inactivity...");
         return;
       }
 
       playNext(interaction);
-    }, Number(process.env.DC_IDLE) || 30000);
+    }, Number(process.env.DC_IDLE));
   });
 
   serverQueue.player.on("error", (error: any) => {
@@ -154,7 +168,7 @@ export async function playNext(
 
 export async function playQueue(
   interaction: CommandInteraction | ModalSubmitInteraction,
-  tracks: Track[]
+  tracks: Track[],
 ) {
   // @ts-ignore
   const voiceChannel = interaction.member?.voice?.channel;
@@ -178,7 +192,7 @@ export async function playQueue(
     connection.joinConfig.channelId !== voiceChannel.id
   ) {
     return interaction.editReply(
-      "Song already playing on another voice channel"
+      "Song already playing on another voice channel",
     );
   }
 
@@ -217,6 +231,6 @@ export async function playQueue(
       return interaction.editReply("No valid tracks found.");
     }
 
-    interaction.editReply(`Added to queue: ${tracks[0].title}`);
+    return interaction.editReply(`Added to queue: ${tracks[0].title}`);
   }
 }

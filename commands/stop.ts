@@ -1,8 +1,13 @@
-import { CommandInteraction, SlashCommandBuilder } from "discord.js";
+import {
+  CommandInteraction,
+  SlashCommandBuilder,
+  MessageFlags,
+} from "discord.js";
 
 import { songQueue } from "../constants";
-import { AudioPlayerStatus, getVoiceConnection } from "@discordjs/voice";
-import { shouldDisconnect } from "../utils/voice";
+import { getVoiceConnection } from "@discordjs/voice";
+
+import Sentry from "@sentry/node";
 
 export const config = {
   name: "stop",
@@ -18,44 +23,51 @@ export const data = new SlashCommandBuilder()
 export async function execute(interaction: CommandInteraction) {
   // @ts-ignore
   const voiceChannel = interaction.member?.voice?.channel;
-
   if (!voiceChannel) {
-    return;
+    return interaction.reply({
+      content: "Not connected to voice channel",
+      flags: MessageFlags.Ephemeral,
+    });
   }
 
   const guildId = interaction.guildId;
   const connection = getVoiceConnection(guildId!);
 
   if (!connection) {
-    return;
+    return interaction.reply({
+      content: "Bot not connected to the voice channel",
+      flags: MessageFlags.Ephemeral,
+    });
   }
 
   if (connection && connection.joinConfig.channelId !== voiceChannel.id) {
-    return;
+    return interaction.reply({
+      content: "Not connected to the correct voice channel",
+      flags: MessageFlags.Ephemeral,
+    });
   }
 
   if (!songQueue.has(guildId)) {
-    return;
+    return interaction.reply({
+      content: "No songs",
+      flags: MessageFlags.Ephemeral,
+    });
   }
 
-  const guildQueue = songQueue.get(guildId);
+  const serverQueue = songQueue.get(guildId);
 
-  if (
-    guildQueue.player.state.status == AudioPlayerStatus.Playing ||
-    guildQueue.player.state.status == AudioPlayerStatus.Buffering
-  ) {
-    guildQueue.player.stop();
-    guildQueue.disconnectTimeout = setTimeout(() => {
-      if (shouldDisconnect(interaction)) {
-        const connection = getVoiceConnection(interaction.guildId!)!;
-        connection.destroy();
-        songQueue.delete(interaction.guildId!);
-      }
-    }, Number(process.env.DC_IDLE) || 30000);
-    songQueue.delete(interaction.guildId);
+  try {
+    serverQueue.player.stop();
+    songQueue.delete(guildId);
+
+    serverQueue.disconnectTimeout = setTimeout(() => {
+      serverQueue.connection.destroy();
+    }, Number(process.env.DC_IDLE));
 
     return interaction.reply("⏹️ Stopped playback and cleared queue.");
-  }
+  } catch (error) {
+    Sentry.captureException(error);
 
-  return interaction.reply("Failed to stop playback");
+    return interaction.reply("Failed to stop playback");
+  }
 }
