@@ -27,7 +27,7 @@ export async function execute(interaction: CommandInteraction) {
 
   if (!serverQueue || serverQueue.tracks.length === 0) {
     return await interaction.reply({
-      content: "There are no songs currently in the queue.",
+      content: "❌ No active song queue.",
       flags: MessageFlags.Ephemeral,
     });
   }
@@ -42,7 +42,7 @@ export async function execute(interaction: CommandInteraction) {
 
     const songList = tracks
       .map(
-        (track: Track, index: number) => `${start + index + 1}. ${track.title}`
+        (track: Track, index: number) => `${start + index + 1}. ${track.title}`,
       )
       .join("\n");
 
@@ -50,21 +50,21 @@ export async function execute(interaction: CommandInteraction) {
       new ButtonBuilder()
         .setCustomId(`play_${start + i}`)
         .setLabel(`▶️ ${start + i + 1}`)
-        .setStyle(ButtonStyle.Secondary)
+        .setStyle(ButtonStyle.Secondary),
     );
 
     const favButtons = tracks.map((_: any, i: number) =>
       new ButtonBuilder()
         .setCustomId(`fav_${start + i}`)
         .setLabel(`⭐ ${start + i + 1}`)
-        .setStyle(ButtonStyle.Secondary)
+        .setStyle(ButtonStyle.Secondary),
     );
 
     const playRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
-      playButtons
+      playButtons,
     );
     const favRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
-      favButtons
+      favButtons,
     );
 
     const navRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -77,7 +77,7 @@ export async function execute(interaction: CommandInteraction) {
         .setCustomId("next")
         .setLabel("Next ⏭️")
         .setStyle(ButtonStyle.Primary)
-        .setDisabled(end >= serverQueue.tracks.length)
+        .setDisabled(end >= serverQueue.tracks.length),
     );
 
     return { songList, rows: [playRow /* favRow */, navRow] };

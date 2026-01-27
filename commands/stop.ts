@@ -49,7 +49,7 @@ export async function execute(interaction: CommandInteraction) {
 
   if (!songQueue.has(guildId)) {
     return interaction.reply({
-      content: "No songs",
+      content: "❌ No active song queue.",
       flags: MessageFlags.Ephemeral,
     });
   }

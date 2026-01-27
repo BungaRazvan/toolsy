@@ -1,4 +1,8 @@
-import { CommandInteraction, SlashCommandBuilder } from "discord.js";
+import {
+  CommandInteraction,
+  SlashCommandBuilder,
+  MessageFlags,
+} from "discord.js";
 import { getVoiceConnection } from "@discordjs/voice";
 import { songQueue } from "../constants";
 
@@ -18,30 +22,41 @@ export async function execute(interaction: CommandInteraction) {
   const voiceChannel = interaction.member?.voice?.channel;
 
   if (!voiceChannel) {
-    return;
+    return interaction.reply({
+      content: "Not connected to voice channel",
+      flags: MessageFlags.Ephemeral,
+    });
   }
 
   const guildId = interaction.guildId;
-
-  let connection = getVoiceConnection(guildId!);
+  const connection = getVoiceConnection(guildId!);
 
   if (!connection) {
-    return;
+    return interaction.reply({
+      content: "Bot not connected to voice channel",
+      flags: MessageFlags.Ephemeral,
+    });
   }
 
   if (connection && connection.joinConfig.channelId !== voiceChannel.id) {
-    return;
+    return interaction.reply({
+      content: "Bot not connected to the correct voice channel",
+      flags: MessageFlags.Ephemeral,
+    });
   }
 
   const serverQueue = songQueue.get(interaction.guildId);
 
   if (!serverQueue) {
-    return interaction.reply("❌ No active song queue.");
+    return interaction.reply({
+      content: "❌ No active song queue.",
+      flags: MessageFlags.Ephemeral,
+    });
   }
 
   serverQueue.isLooping = !serverQueue.isLooping;
 
   return interaction.reply(
-    `🔁 Looping is now **${serverQueue.isLooping ? "enabled" : "disabled"}**.`
+    `🔁 Looping is now **${serverQueue.isLooping ? "enabled" : "disabled"}**.`,
   );
 }

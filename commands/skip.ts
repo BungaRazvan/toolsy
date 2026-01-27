@@ -64,7 +64,7 @@ export async function execute(interaction: CommandInteraction) {
 
   if (!serverQueue) {
     return interaction.reply({
-      content: "No songs",
+      content: "❌ No active song queue.",
       flags: MessageFlags.Ephemeral,
     });
   }
