@@ -60,10 +60,6 @@ export async function execute(interaction: CommandInteraction) {
     serverQueue.player.stop();
     songQueue.delete(guildId);
 
-    serverQueue.disconnectTimeout = setTimeout(() => {
-      serverQueue.connection.destroy();
-    }, Number(process.env.DC_IDLE));
-
     return interaction.reply("⏹️ Stopped playback and cleared queue.");
   } catch (error) {
     Sentry.captureException(error);
