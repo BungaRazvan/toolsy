@@ -132,6 +132,13 @@ export async function playNext(
   serverQueue.player.once(AudioPlayerStatus.Idle, () => {
     console.log("🎵 Song ended. Playing next...");
 
+    if (serverQueue.index >= serverQueue.tracks.length) {
+      // @ts-ignore
+      interaction.channel.send("⚠️ No more songs. Leaving Soon");
+    } else {
+      console.log("👋 Leaving due to inactivity...");
+    }
+
     // Reset message flag for the next song
     serverQueue.hasAnnounced = false;
 
@@ -141,13 +148,6 @@ export async function playNext(
       }
 
       if (shouldDisconnect(interaction)) {
-        if (serverQueue.index >= serverQueue.tracks.length) {
-          // @ts-ignore
-          interaction.channel.send("⚠️ No more songs. Leaving Soon");
-        } else {
-          console.log("👋 Leaving due to inactivity...");
-        }
-
         serverQueue.connection.destroy();
         songQueue.delete(interaction.guildId!);
         return;
