@@ -17,13 +17,14 @@
   "dependencies": {
     "@discordjs/builders": "1.4.0",
     "@discordjs/rest": "1.4.0",
-    "@discordjs/voice": "^0.18.0",
+    "@discordjs/voice": "^0.19.2",
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "@sentry/node": "^10.17.0",
-    "discord.js": "^14.19.3",
+    "discord.js": "^14.26.0",
     "dotenv": "8.2.0",
     "fs": "0.0.1-security",
     "lodash": "^4.17.21",
-    "youtube-dl-exec": "^3.0.19"
+    "youtube-dl-exec": "^3.1.4"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
