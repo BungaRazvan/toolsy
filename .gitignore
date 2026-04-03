@@ -5,3 +5,4 @@
 --Frag*
 *.sqlite
 *.tar
+.buildx-cache

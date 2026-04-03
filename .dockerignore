@@ -4,3 +4,4 @@ node_modules
 *.tar
 .git
 dist
+.buildx-cache

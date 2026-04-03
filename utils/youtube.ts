@@ -1,10 +1,5 @@
 import { songQueue } from "../constants";
-import {
-  ButtonInteraction,
-  CommandInteraction,
-  Interaction,
-  ModalSubmitInteraction,
-} from "discord.js";
+import { CommandInteraction, ModalSubmitInteraction } from "discord.js";
 import {
   AudioPlayerStatus,
   createAudioPlayer,
@@ -82,7 +77,11 @@ export async function playNext(
   const track = serverQueue.tracks[serverQueue.index]!;
 
   // Skip invalid tracks
-  if (!track.url || (track.title && track.title.includes("Deleted"))) {
+  if (
+    !track ||
+    !track.url ||
+    (track.title && track.title.includes("Deleted"))
+  ) {
     console.warn("⚠️ Skipping invalid track:", track.title);
     serverQueue.index++;
     return playNext(interaction);
