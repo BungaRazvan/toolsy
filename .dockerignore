@@ -1,7 +1,10 @@
 node_modules
-.env
-*.sqlite
-*.tar
-.git
 dist
 .buildx-cache
+.buildx-cache-new
+.git
+*.log
+*.tar
+Dockerfile
+docker-compose.yml
+.env

@@ -1,0 +1,22 @@
+services:
+  deploy_commands:
+    image: toolsy:latest
+    container_name: toolsy_command
+    command: npm run command
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+    restart: "no"
+    network_mode: host
+
+  bot:
+    image: toolsy:latest
+    container_name: toolsy_bot
+    command: node dist/index.js
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+    network_mode: host
