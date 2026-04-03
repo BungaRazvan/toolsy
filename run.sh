@@ -10,4 +10,4 @@ docker run -d \
     --env-file /home/pi/projects/toolsy/.env \
     toolsy:latest
 
-docker exec -it toolsy npm run dev
+docker exec -it toolsy npm run start
