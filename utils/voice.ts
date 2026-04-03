@@ -45,6 +45,11 @@ export function shouldDisconnect(
     return false;
   }
 
+  if (voiceChannel.members.size > 1 && serverQueue && serverQueue.isRadio) {
+    // Check if bot is the only one left
+    return false;
+  }
+
   if (
     voiceChannel.members.size > 1 &&
     serverQueue &&

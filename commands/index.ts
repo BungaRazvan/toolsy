@@ -8,6 +8,7 @@ import * as loop from "./loop";
 import * as list from "./list";
 import * as playlist from "./playlist";
 import * as mc_stats from "./mc_stats";
+import * as radio from "./radio";
 
 type CommnadConfig = {
   name: string;
@@ -35,6 +36,7 @@ const commands: CommandsCollection = {
   list,
   playlist,
   mc_stats,
+  // radio,
 };
 
 const slashCommands: CommandsCollection = {};

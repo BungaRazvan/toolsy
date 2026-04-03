@@ -8,8 +8,8 @@ import {
   joinVoiceChannel,
   StreamType,
 } from "@discordjs/voice";
-import { spawn } from "child_process";
 import { shouldDisconnect } from "./voice";
+import youtubedl from "youtube-dl-exec";
 
 export type Track = {
   title: string;
@@ -54,12 +54,11 @@ export async function playNext(
 ) {
   const serverQueue = songQueue.get(interaction.guildId);
 
+  serverQueue.player.removeAllListeners();
+
   if (!serverQueue) {
     return;
   }
-
-  // Prevent duplicate event listeners
-  serverQueue.player.removeAllListeners(AudioPlayerStatus.Idle);
 
   // make sure index not > than songs list
   if (serverQueue.index > serverQueue.tracks.length) {
@@ -75,6 +74,7 @@ export async function playNext(
   }
 
   const track = serverQueue.tracks[serverQueue.index]!;
+  console.log(serverQueue.tracks);
 
   // Skip invalid tracks
   if (
@@ -82,7 +82,7 @@ export async function playNext(
     !track.url ||
     (track.title && track.title.includes("Deleted"))
   ) {
-    console.warn("⚠️ Skipping invalid track:", track.title);
+    console.warn("⚠️ Skipping invalid track at index: ", serverQueue.index);
     serverQueue.index++;
     return playNext(interaction);
   }
@@ -90,16 +90,21 @@ export async function playNext(
   console.log("▶️ Now playing:", track.url);
 
   try {
-    const audio = spawn("yt-dlp", [
-      "-f",
-      "bestaudio[ext=m4a]/bestaudio",
-      "-o",
-      "-",
-      "--no-playlist",
-      "--quiet",
+    const audio = youtubedl.exec(
       track.url,
-    ]);
+      {
+        format: "bestaudio/best",
+        noPlaylist: true,
+        quiet: true,
+        noWarnings: true,
+        output: "-",
+      },
+      {
+        stdio: ["ignore", "pipe", "pipe"], // Sets up standard streams properly
+      },
+    );
 
+    // @ts-ignore
     const resource = createAudioResource(audio.stdout, {
       inputType: StreamType.Arbitrary,
     });
@@ -132,6 +137,8 @@ export async function playNext(
     if (serverQueue.index >= serverQueue.tracks.length) {
       // @ts-ignore
       interaction.channel.send("⚠️ No more songs. Leaving Soon");
+    } else {
+      console.log("👋 Leaving soon due to inactivity...");
     }
 
     // Reset message flag for the next song
