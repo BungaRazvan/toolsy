@@ -92,13 +92,11 @@ export async function playNext(
   try {
     const audio = spawn("yt-dlp", [
       "-f",
-      "bestaudio",
+      "bestaudio[ext=m4a]/bestaudio",
       "-o",
       "-",
       "--no-playlist",
       "--quiet",
-      "--default-search",
-      "ytsearch",
       track.url,
     ]);
 
@@ -107,7 +105,7 @@ export async function playNext(
     });
 
     serverQueue.player.play(resource);
-  } catch {
+  } catch (error) {
     // @ts-ignore
     interaction.channel.send("⚠️ Failed to play song");
     serverQueue.index++;
@@ -134,8 +132,6 @@ export async function playNext(
     if (serverQueue.index >= serverQueue.tracks.length) {
       // @ts-ignore
       interaction.channel.send("⚠️ No more songs. Leaving Soon");
-    } else {
-      console.log("👋 Leaving due to inactivity...");
     }
 
     // Reset message flag for the next song

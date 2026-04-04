@@ -6,9 +6,7 @@ import {
   ActivityType,
   ChannelType,
   Interaction,
-  CacheType,
   CommandInteraction,
-  ButtonInteraction,
 } from "discord.js";
 
 import env from "dotenv";
