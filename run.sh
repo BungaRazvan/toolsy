@@ -1,13 +1,18 @@
 #!/bin/bash
 set -e
 
-docker rm toolsy -f || true
+cd /home/pi/projects/toolsy
 
+echo "Stopping containers..."
+docker compose down || true
+
+echo "Loading image..."
 docker load -i toolsy.tar
 
-docker run -d \
-    --name toolsy \
-    --env-file /home/pi/projects/toolsy/.env \
-    toolsy:latest
+echo "Starting services..."
+docker compose up -d --force-recreate
 
-docker exec -it toolsy npm run dev
+echo "Cleaning unused images..."
+docker image prune -a -f
+
+echo "Done."%

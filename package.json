@@ -7,8 +7,9 @@
     "commands": "tsx deploy_commands.ts",
     "dev": "tsx watch index.ts",
     "watch:commands": "chokidar './commands/**/*.ts' -c 'tsx deploy_commands.ts'",
-    "start": "node dist/deploy_commands.js && node dist/index.js",
-    "build": "tsup deploy_commands.ts && tsup index.ts --minify",
+    "start": "node dist/index.js",
+    "command": "node dist/deploy_commands.js",
+    "build": "tsup",
     "test": "jest"
   },
   "keywords": [],

@@ -6,3 +6,4 @@
 *.sqlite
 *.tar
 .buildx-cache
+.buildx-cache-new
