@@ -17,7 +17,7 @@
   "license": "ISC",
   "dependencies": {
     "@discordjs/builders": "1.4.0",
-    "@discordjs/rest": "1.4.0",
+    "@discordjs/rest": "2.6.1",
     "@discordjs/voice": "^0.19.2",
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "@sentry/node": "^10.17.0",
