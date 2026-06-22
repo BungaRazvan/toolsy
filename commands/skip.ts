@@ -71,10 +71,9 @@ export async function execute(interaction: CommandInteraction) {
 
   const index = serverQueue.index + skip_no;
 
-  console.log(serverQueue.tracks.length, index);
-  if (index > serverQueue.tracks.length) {
+  if (index > serverQueue.tracks.length - 1) {
     return interaction.reply({
-      content: `Skip number ${index} is greater then the length of the playlist: ${serverQueue.tracks.length}`,
+      content: `No next song to play`,
       flags: MessageFlags.Ephemeral,
     });
   }

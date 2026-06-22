@@ -58,6 +58,15 @@ export async function execute(interaction: CommandInteraction) {
 
   try {
     serverQueue.player.stop();
+
+    if (serverQueue.disconnectInterval) {
+      clearInterval(serverQueue.disconnectInterval);
+    }
+
+    if (serverQueue.disconnectTimeout) {
+      clearTimeout(serverQueue.disconnectTimeout);
+    }
+
     songQueue.delete(guildId);
 
     return interaction.reply("⏹️ Stopped playback and cleared queue.");
