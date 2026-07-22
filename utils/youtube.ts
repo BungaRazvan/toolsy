@@ -123,6 +123,11 @@ export async function playNext(
         quiet: true,
         noWarnings: true,
         output: "-",
+        extractor_args: {
+          youtube: {
+            player_client: ["android", "ios", "mweb"],
+          },
+        },
       },
       {
         stdio: ["ignore", "pipe", "pipe"],
@@ -135,7 +140,6 @@ export async function playNext(
 
     const resource = createAudioResource(audio.stdout, {
       inputType: StreamType.Arbitrary,
-      inlineVolume: true,
     }) as any;
 
     serverQueue.player.play(resource);
