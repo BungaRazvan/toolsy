@@ -1,5 +1,5 @@
 import {
-  CommandInteraction,
+  ChatInputCommandInteraction,
   SlashCommandBuilder,
   MessageFlags,
 } from "discord.js";
@@ -17,8 +17,7 @@ export const data = new SlashCommandBuilder()
   .setName(config.name)
   .setDescription(config.description);
 
-export async function execute(interaction: CommandInteraction) {
-  // @ts-ignore
+export async function execute(interaction: ChatInputCommandInteraction) {
   const voiceChannel = interaction.member?.voice?.channel;
 
   if (!voiceChannel) {
@@ -45,7 +44,7 @@ export async function execute(interaction: CommandInteraction) {
     });
   }
 
-  const serverQueue = songQueue.get(interaction.guildId);
+  const serverQueue = songQueue.get(interaction.guildId!);
 
   if (!serverQueue) {
     return interaction.reply({

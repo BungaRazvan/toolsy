@@ -1,6 +1,6 @@
 import {
+  ChatInputCommandInteraction,
   SlashCommandBuilder,
-  CommandInteraction,
   ButtonBuilder,
   ButtonStyle,
   ActionRowBuilder,
@@ -9,6 +9,7 @@ import {
   MessageFlags,
 } from "discord.js";
 import { apiCall } from "../utils/api";
+import { captureError, safeEditReply, safeReply } from "../utils/error";
 
 export const config = {
   name: "playlist",
@@ -21,21 +22,31 @@ export const data = new SlashCommandBuilder()
   .setName(config.name)
   .setDescription(config.description);
 
-export async function execute(interaction: CommandInteraction) {
+export async function execute(interaction: ChatInputCommandInteraction) {
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-  const response = await apiCall(
-    "get",
-    "youtube-playlist",
-    new URLSearchParams({
-      user_id: interaction.user.id as string,
-      guild_id: interaction.guild?.id as string,
-    }),
-    { useAPIKey: true }
-  );
 
   let playlistsData = null;
 
-  playlistsData = await response.json();
+  try {
+    const response = await apiCall(
+      "get",
+      "youtube-playlist",
+      new URLSearchParams({
+        user_id: interaction.user.id as string,
+        guild_id: interaction.guild?.id as string,
+      }),
+      { useAPIKey: true },
+    );
+
+    playlistsData = await response.json();
+  } catch (error) {
+    captureError(error, "playlistCommand");
+
+    return safeEditReply(
+      interaction,
+      "⚠️ Unable to load playlists right now. Please try again later.",
+    );
+  }
 
   const playlists = playlistsData.playlists || [];
 
@@ -86,7 +97,7 @@ export async function execute(interaction: CommandInteraction) {
       .setCustomId("playlist_delete")
       .setLabel("🗑️ Delete")
       .setStyle(4)
-      .setDisabled(true)
+      .setDisabled(true),
   );
 
   const msg = await interaction.editReply({
@@ -128,7 +139,7 @@ export async function execute(interaction: CommandInteraction) {
           new ButtonBuilder()
             .setCustomId(`playlist_delete::${selectedId}`)
             .setLabel("🗑️ Delete")
-            .setStyle(ButtonStyle.Danger)
+            .setStyle(ButtonStyle.Danger),
         );
 
       const option = options.find((option: any) => option.value == i.values[0]);
@@ -155,6 +166,6 @@ export async function execute(interaction: CommandInteraction) {
   });
 
   collector.on("end", async () => {
-    await interaction.editReply({ components: [] });
+    await safeEditReply(interaction, { components: [] }).catch(() => {});
   });
 }

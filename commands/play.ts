@@ -1,6 +1,7 @@
-import { SlashCommandBuilder, CommandInteraction } from "discord.js";
+import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
 
 import { fetchTracksByTitleOrUrl, playQueue } from "../utils/youtube";
+import { captureError, safeEditReply } from "../utils/error";
 
 export const config = {
   name: "play",
@@ -19,17 +20,14 @@ export const data = new SlashCommandBuilder()
       .setRequired(true),
   );
 
-export async function execute(interaction: CommandInteraction) {
-  // @ts-ignore
-  const song = interaction.options.getString("song");
-
+export async function execute(interaction: ChatInputCommandInteraction) {
+  const song = interaction.options.getString("song", true);
   const url = URL.canParse(song) ? new URL(song) : null;
 
-  if (url && url.hostname != "www.youtube.com") {
-    return interaction.reply("You must provinde a yotube url");
+  if (url && url.hostname !== "www.youtube.com") {
+    return interaction.reply("You must provide a YouTube URL");
   }
 
-  // @ts-ignore
   const voiceChannel = interaction.member?.voice?.channel;
 
   if (!voiceChannel) {
@@ -41,8 +39,12 @@ export async function execute(interaction: CommandInteraction) {
 
   try {
     tracks = await fetchTracksByTitleOrUrl(song);
-  } catch {
-    return interaction.editReply("No valid tracks found.");
+  } catch (error) {
+    captureError(error, "fetchTracksByTitleOrUrl");
+    return safeEditReply(
+      interaction,
+      "⚠️ No valid tracks found. Please try again later.",
+    );
   }
 
   if (!tracks.length) {

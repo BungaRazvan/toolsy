@@ -12,9 +12,8 @@ import {
 import env from "dotenv";
 
 import { slashCommands, normalCommands, CustomCommand } from "./commands";
-
-import Sentry from "@sentry/node";
 import { routeInteractions } from "./interactions";
+import { captureError, initErrorTracking, safeReply } from "./utils/error";
 
 env.config();
 
@@ -64,11 +63,8 @@ bot.on(Events.MessageCreate, async (message) => {
 });
 
 bot.on("ready", async () => {
-  Sentry.init({
-    enabled: !isDEV,
-    dsn: process.env.SENTRY_DSN,
-    environment: process.env.ENV,
-  });
+  initErrorTracking(isDEV);
+
   // @ts-ignore
   console.log(`${bot.user.username} is online`);
   console.log(`Bot is in ${bot.guilds.cache.size} servers`);
@@ -82,6 +78,14 @@ bot.on("ready", async () => {
       },
     ],
   });
+});
+
+process.on("unhandledRejection", (reason) => {
+  captureError(reason, "unhandledRejection");
+});
+
+process.on("uncaughtException", (error) => {
+  captureError(error, "uncaughtException");
 });
 
 const executeInteraction = async (interaction: Interaction) => {
@@ -105,36 +109,12 @@ bot.on(Events.InteractionCreate, async (interaction) => {
   try {
     await executeInteraction(interaction);
   } catch (err) {
-    if (isDEV) {
-      console.error(err);
-    }
+    captureError(err, "interactionFailure");
 
-    Sentry.captureException(err);
-
-    const fallbackMsg = {
+    await safeReply(interaction, {
       content: "⚠️ An error occurred while running that command.",
-    };
-
-    // safe fallback
-
-    try {
-      // @ts-ignore
-      if (!interaction.replied && !interaction.deferred) {
-        // @ts-ignore
-        await interaction.reply(fallbackMsg).catch(() => {});
-      } else {
-        // @ts-ignore
-        await interaction.followUp(fallbackMsg).catch((e) => {
-          console.error("Failed followUp in error handler:", e);
-        });
-      }
-    } catch (finalErr) {
-      if (isDEV) {
-        console.error("Final fallback failed:", finalErr);
-      }
-
-      Sentry.captureException(finalErr);
-    }
+      ephemeral: true,
+    });
   }
 });
 

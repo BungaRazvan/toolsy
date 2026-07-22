@@ -1,5 +1,9 @@
-import { songQueue } from "../constants";
-import { CommandInteraction, ModalSubmitInteraction } from "discord.js";
+import { songQueue, Track } from "../constants";
+import {
+  ChatInputCommandInteraction,
+  ModalSubmitInteraction,
+  TextBasedChannel,
+} from "discord.js";
 import {
   AudioPlayerStatus,
   createAudioPlayer,
@@ -11,81 +15,102 @@ import {
 import { shouldDisconnect } from "./voice";
 import youtubedl from "youtube-dl-exec";
 
-export type Track = {
-  title: string;
-  url: string;
-};
-
 export async function fetchTracksByTitleOrUrl(song: string) {
-  const url = URL.canParse(song) ? new URL(song) : null;
-  let tracks = [];
+  const trimmedSong = song?.trim();
 
-  if (url) {
-    tracks = await fetchTracks(url.href);
-  } else {
-    tracks = await fetchTracks(null, song);
+  if (!trimmedSong) {
+    throw new Error("Song title or URL is required");
   }
 
-  return tracks;
+  const url = URL.canParse(trimmedSong) ? new URL(trimmedSong) : null;
+
+  if (url) {
+    return await fetchTracks(url.href);
+  }
+
+  return await fetchTracks(null, trimmedSong);
 }
 
 export async function fetchTracks(
   url: string | null = null,
   title: string | null = null,
 ): Promise<Track[]> {
-  let params = null;
+  if (!process.env.API_URL) {
+    throw new Error("Missing API_URL environment variable");
+  }
+
+  let params: URLSearchParams;
 
   if (url) {
     params = new URLSearchParams({ url });
-  } else {
-    // @ts-ignore
+  } else if (title) {
     params = new URLSearchParams({ title });
+  } else {
+    throw new Error("Missing url or title for fetchTracks");
   }
 
   const response = await fetch(
     `${process.env.API_URL}/discord/get-youtube-tracks?${params}`,
   );
 
+  if (!response.ok) {
+    const errorText = await response
+      .text()
+      .catch(() => "<unable to read response>");
+
+    throw new Error(
+      `Failed to fetch tracks: ${response.status} ${response.statusText} - ${errorText}`,
+    );
+  }
+
   return response.json();
 }
 
 export async function playNext(
-  interaction: CommandInteraction | ModalSubmitInteraction,
+  interaction: ChatInputCommandInteraction | ModalSubmitInteraction,
 ) {
-  const serverQueue = songQueue.get(interaction.guildId);
+  if (!interaction.guildId) {
+    return;
+  }
 
-  serverQueue.player.removeAllListeners();
+  const guildId = interaction.guildId;
+  const serverQueue = songQueue.get(guildId);
 
   if (!serverQueue) {
     return;
   }
 
-  // make sure index not > than songs list
-  if (serverQueue.index > serverQueue.tracks.length) {
-    // @ts-ignore
-    interaction.channel.send("⚠️ No more songs. Leaving Soon");
+  serverQueue.player.removeAllListeners();
+
+  while (serverQueue.index < serverQueue.tracks.length) {
+    const nextTrack = serverQueue.tracks[serverQueue.index];
+
+    if (
+      !nextTrack ||
+      !nextTrack.url ||
+      (nextTrack.title && nextTrack.title.includes("Deleted"))
+    ) {
+      console.warn("⚠️ Skipping invalid track at index:", serverQueue.index);
+      serverQueue.index++;
+      continue;
+    }
+
+    break;
+  }
+
+  if (serverQueue.index >= serverQueue.tracks.length) {
+    const channel = interaction.channel as TextBasedChannel | null;
+    channel?.send("⚠️ No more songs. Leaving Soon").catch(() => {});
 
     serverQueue.disconnectTimeout = setTimeout(() => {
       serverQueue.connection.destroy();
-      songQueue.delete(interaction.guildId);
+      songQueue.delete(interaction.guildId!);
       console.log("⏹️ No more songs. Leaving voice channel...");
     }, Number(process.env.DC_IDLE));
     return;
   }
 
   const track = serverQueue.tracks[serverQueue.index]!;
-  console.log(serverQueue.tracks);
-
-  // Skip invalid tracks
-  if (
-    !track ||
-    !track.url ||
-    (track.title && track.title.includes("Deleted"))
-  ) {
-    console.warn("⚠️ Skipping invalid track at index: ", serverQueue.index);
-    serverQueue.index++;
-    return playNext(interaction);
-  }
 
   console.log("▶️ Now playing:", track.url);
 
@@ -100,22 +125,28 @@ export async function playNext(
         output: "-",
       },
       {
-        stdio: ["ignore", "pipe", "pipe"], // Sets up standard streams properly
+        stdio: ["ignore", "pipe", "pipe"],
       },
     );
 
-    // @ts-ignore
+    if (!audio || !audio.stdout) {
+      throw new Error("Unable to create audio stream from URL");
+    }
+
     const resource = createAudioResource(audio.stdout, {
       inputType: StreamType.Arbitrary,
-    });
+      inlineVolume: true,
+    }) as any;
 
     serverQueue.player.play(resource);
   } catch (error) {
-    // @ts-ignore
-    interaction.channel.send("⚠️ Failed to play song");
+    console.error("❌ Failed to create audio resource:", error);
+    const channel = interaction.channel as TextBasedChannel | null;
+    channel
+      ?.send("⚠️ Failed to play song. Skipping to next track.")
+      .catch(() => {});
     serverQueue.index++;
-    playNext(interaction);
-    return;
+    return playNext(interaction);
   }
 
   serverQueue.player.once(AudioPlayerStatus.Playing, async () => {
@@ -159,17 +190,19 @@ export async function playNext(
     }, Number(process.env.DC_IDLE));
   });
 
-  serverQueue.player.on("error", (error: any) => {
+  serverQueue.player.on("error", (error: Error) => {
     console.error("❌ Audio player error:", error);
-    // @ts-ignore
-    interaction.channel!.send(`⚠️ Error playing: ${track.url}. Skipping...`);
+    const channel = interaction.channel as TextBasedChannel | null;
+    channel
+      ?.send(`⚠️ Error playing: ${track.url}. Skipping...`)
+      .catch(() => {});
     serverQueue.index++;
     playNext(interaction);
   });
 }
 
 export async function playQueue(
-  interaction: CommandInteraction | ModalSubmitInteraction,
+  interaction: ChatInputCommandInteraction | ModalSubmitInteraction,
   tracks: Track[],
 ) {
   // @ts-ignore
@@ -179,7 +212,7 @@ export async function playQueue(
     return;
   }
 
-  const guildId = interaction.guildId;
+  const guildId = interaction.guildId!;
 
   let connection = getVoiceConnection(guildId!);
 
@@ -205,12 +238,20 @@ export async function playQueue(
       tracks: [],
       index: 0,
       disconnectTimeout: null,
+      disconnectInterval: null,
       connection,
       player,
+      hasAnnounced: false,
+      isLooping: false,
+      isRadio: false,
     });
   }
 
   const guildQueue = songQueue.get(guildId);
+  if (!guildQueue) {
+    return;
+  }
+
   guildQueue.tracks.push(...tracks);
 
   if (

@@ -3,6 +3,7 @@ import {
   SlashCommandBuilder,
   MessageFlags,
 } from "discord.js";
+import { captureError, safeEditReply } from "../utils/error";
 
 import { getVoiceConnection } from "@discordjs/voice";
 import { playNext } from "../utils/youtube";
@@ -86,8 +87,8 @@ export async function execute(interaction: CommandInteraction) {
 
   // Remove old deferred reply
   try {
-    await interaction.editReply("Song skipped");
+    await safeEditReply(interaction, "Song skipped");
   } catch (error) {
-    console.warn("⚠️ No deferred reply to delete.");
+    captureError(error, "skipCommandEditReply");
   }
 }

@@ -1,5 +1,6 @@
-import { CommandInteraction, SlashCommandBuilder } from "discord.js";
+import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
 import { request } from "undici";
+import { captureError, safeEditReply } from "../utils/error";
 
 import {
   AudioPlayerStatus,
@@ -25,8 +26,7 @@ export const data = new SlashCommandBuilder()
   .setName(config.name)
   .setDescription(config.description);
 
-export async function execute(interaction: CommandInteraction) {
-  // @ts-ignore
+export async function execute(interaction: ChatInputCommandInteraction) {
   const voiceChannel = interaction.member?.voice?.channel;
 
   if (!voiceChannel) {
@@ -75,6 +75,10 @@ export async function execute(interaction: CommandInteraction) {
 
   const serverQueue = songQueue.get(guildId);
 
+  if (!serverQueue) {
+    return interaction.editReply("❌ Failed to initialize radio queue.");
+  }
+
   if (serverQueue.disconnectTimeout) {
     clearTimeout(serverQueue.disconnectTimeout);
   }
@@ -83,11 +87,33 @@ export async function execute(interaction: CommandInteraction) {
     clearInterval(serverQueue.disconnectInterval);
   }
 
-  const response = await request("http://asculta.radioromanian.net:8100/");
+  let response;
 
-  const resource = createAudioResource(response.body, {
-    inputType: StreamType.Arbitrary,
-  });
+  try {
+    response = await request("http://asculta.radioromanian.net:8100/");
+  } catch (error) {
+    captureError(error, "radioRequest");
+    connection.destroy();
+    return safeEditReply(
+      interaction,
+      "❌ Unable to connect to the radio stream. Please try again later.",
+    );
+  }
+
+  let resource;
+
+  try {
+    resource = createAudioResource(response.body, {
+      inputType: StreamType.Arbitrary,
+    });
+  } catch (error) {
+    captureError(error, "radioResource");
+    connection.destroy();
+    return safeEditReply(
+      interaction,
+      "❌ Failed to play the radio stream. Please try again later.",
+    );
+  }
 
   connection.subscribe(serverQueue.player);
 

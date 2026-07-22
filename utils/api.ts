@@ -6,9 +6,13 @@ export async function apiCall(
     path?: string;
     headers?: Record<string, string>;
     useAPIKey?: boolean;
-  } = {}
+  } = {},
 ) {
   const { path = "discord", headers = {} } = options;
+
+  if (!process.env.API_URL) {
+    throw new Error("Missing API_URL environment variable");
+  }
 
   let url = `${process.env.API_URL}/${path}/${endpoint}`;
   let requestBody = body;
@@ -26,7 +30,7 @@ export async function apiCall(
     headers["X-API-KEY"] = process.env.APP_TOKEN!;
   }
 
-  if (headers["Content-Type"] == "application/json") {
+  if (headers["Content-Type"] === "application/json") {
     requestBody = JSON.stringify(body);
   }
 
@@ -36,5 +40,16 @@ export async function apiCall(
     headers,
   };
 
-  return await fetch(url, params);
+  const response = await fetch(url, params);
+
+  if (!response.ok) {
+    const errorText = await response
+      .text()
+      .catch(() => "<unable to read response>");
+    throw new Error(
+      `API request failed: ${response.status} ${response.statusText} - ${errorText}`,
+    );
+  }
+
+  return response;
 }
