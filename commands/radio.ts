@@ -4,7 +4,6 @@ import { captureError, safeEditReply } from "../utils/error";
 
 import {
   AudioPlayerStatus,
-  createAudioPlayer,
   createAudioResource,
   entersState,
   getVoiceConnection,
@@ -12,8 +11,8 @@ import {
   StreamType,
   VoiceConnectionStatus,
 } from "@discordjs/voice";
-import { songQueue } from "../constants";
 import { shouldDisconnect } from "../utils/voice";
+import { createQueue, deleteQueue, scheduleQueueAction } from "../utils/queue";
 
 export const config = {
   name: "radio",
@@ -60,32 +59,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     return interaction.editReply("❌ Failed to join voice channel.");
   }
 
-  if (!songQueue.has(guildId)) {
-    const player = createAudioPlayer();
-    connection.subscribe(player);
-    songQueue.set(guildId, {
-      tracks: [],
-      index: 0,
-      disconnectTimeout: null,
-      disconnectInterval: null,
-      connection,
-      player,
-    });
-  }
-
-  const serverQueue = songQueue.get(guildId);
-
-  if (!serverQueue) {
-    return interaction.editReply("❌ Failed to initialize radio queue.");
-  }
-
-  if (serverQueue.disconnectTimeout) {
-    clearTimeout(serverQueue.disconnectTimeout);
-  }
-
-  if (serverQueue.disconnectInterval) {
-    clearInterval(serverQueue.disconnectInterval);
-  }
+  const serverQueue = createQueue(guildId, connection);
 
   let response;
 
@@ -93,7 +67,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     response = await request("http://asculta.radioromanian.net:8100/");
   } catch (error) {
     captureError(error, "radioRequest");
-    connection.destroy();
+    deleteQueue(guildId);
     return safeEditReply(
       interaction,
       "❌ Unable to connect to the radio stream. Please try again later.",
@@ -108,7 +82,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     });
   } catch (error) {
     captureError(error, "radioResource");
-    connection.destroy();
+    deleteQueue(guildId);
     return safeEditReply(
       interaction,
       "❌ Failed to play the radio stream. Please try again later.",
@@ -133,13 +107,15 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     console.error("❌ Player error:", error);
   });
 
-  serverQueue.disconnectInterval = setInterval(() => {
-    if (shouldDisconnect(serverQueue)) {
-      serverQueue.connection.destroy();
-      songQueue.delete(serverQueue.connection.guildId!);
-      clearInterval(serverQueue.disconnectTimeout);
-    }
-  }, Number(process.env.DC_IDLE));
+  scheduleQueueAction(
+    serverQueue,
+    () => {
+      if (shouldDisconnect(interaction)) {
+        deleteQueue(guildId);
+      }
+    },
+    true,
+  );
 
   await interaction.editReply("📻 Now playing radio!");
 }

@@ -25,9 +25,9 @@ export function shouldDisconnect(
   interaction: CommandInteraction | ModalSubmitInteraction,
 ) {
   const connection = getVoiceConnection(interaction.guildId!);
-  const serverQueue = songQueue.get(interaction.guildId);
+  const serverQueue = songQueue.get(interaction.guildId!);
 
-  if (!connection) {
+  if (!connection || !serverQueue) {
     return false;
   }
 
@@ -45,19 +45,13 @@ export function shouldDisconnect(
     return false;
   }
 
-  if (voiceChannel.members.size > 1 && serverQueue && serverQueue.isRadio) {
-    // Check if bot is the only one left
-    return false;
+  const hasHumanMembers = voiceChannel.members.some(
+    (member) => !member.user.bot,
+  );
+
+  if (serverQueue.isRadio) {
+    return !hasHumanMembers;
   }
 
-  if (
-    voiceChannel.members.size > 1 &&
-    serverQueue &&
-    serverQueue.index < serverQueue.tracks.length
-  ) {
-    // Check if bot is the only one left
-    return false;
-  }
-
-  return true;
+  return !hasHumanMembers || serverQueue.index >= serverQueue.tracks.length;
 }

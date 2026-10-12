@@ -51,5 +51,5 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     return interaction.editReply("No valid tracks found.");
   }
 
-  playQueue(interaction, tracks);
+  await playQueue(interaction, tracks);
 }

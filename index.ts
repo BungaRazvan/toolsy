@@ -8,12 +8,15 @@ import {
   Interaction,
   CommandInteraction,
 } from "discord.js";
+import { getVoiceConnection } from "@discordjs/voice";
 
 import env from "dotenv";
 
 import { slashCommands, normalCommands, CustomCommand } from "./commands";
 import { routeInteractions } from "./interactions";
+import { songQueue } from "./constants";
 import { captureError, initErrorTracking, safeReply } from "./utils/error";
+import { deleteQueue } from "./utils/queue";
 
 env.config();
 
@@ -60,6 +63,20 @@ bot.on(Events.MessageCreate, async (message) => {
   }
 
   commandFile.execute(bot, message, args);
+});
+
+bot.on(Events.VoiceStateUpdate, (oldState, newState) => {
+  if (
+    newState.id !== bot.user?.id ||
+    !oldState.channelId ||
+    newState.channelId
+  ) {
+    return;
+  }
+
+  const guildId = newState.guild.id;
+
+  deleteQueue(guildId);
 });
 
 bot.on("ready", async () => {

@@ -6,7 +6,6 @@ import {
 } from "discord.js";
 import {
   AudioPlayerStatus,
-  createAudioPlayer,
   createAudioResource,
   getVoiceConnection,
   joinVoiceChannel,
@@ -14,6 +13,12 @@ import {
 } from "@discordjs/voice";
 import { shouldDisconnect } from "./voice";
 import youtubedl from "youtube-dl-exec";
+import {
+  cancelScheduledDeletion,
+  createQueue,
+  deleteQueue,
+  scheduleQueueAction,
+} from "./queue";
 
 export async function fetchTracksByTitleOrUrl(song: string) {
   const trimmedSong = song?.trim();
@@ -99,14 +104,17 @@ export async function playNext(
   }
 
   if (serverQueue.index >= serverQueue.tracks.length) {
-    const channel = interaction.channel as TextBasedChannel | null;
+    const channel = interaction.channel as TextBasedChannel;
+    // @ts-ignore
     channel?.send("⚠️ No more songs. Leaving Soon").catch(() => {});
 
-    serverQueue.disconnectTimeout = setTimeout(() => {
-      serverQueue.connection.destroy();
-      songQueue.delete(interaction.guildId!);
-      console.log("⏹️ No more songs. Leaving voice channel...");
-    }, Number(process.env.DC_IDLE));
+    scheduleQueueAction(
+      serverQueue,
+      () => {
+        deleteQueue(guildId);
+        console.log("⏹️ No more songs. Leaving voice channel...");
+      },
+    );
     return;
   }
 
@@ -123,6 +131,7 @@ export async function playNext(
         quiet: true,
         noWarnings: true,
         output: "-",
+        // @ts-ignore
         extractor_args: {
           youtube: {
             player_client: ["android", "ios", "mweb"],
@@ -145,11 +154,14 @@ export async function playNext(
     serverQueue.player.play(resource);
   } catch (error) {
     console.error("❌ Failed to create audio resource:", error);
-    const channel = interaction.channel as TextBasedChannel | null;
+    const channel = interaction.channel as TextBasedChannel;
+
     channel
-      ?.send("⚠️ Failed to play song. Skipping to next track.")
+      // @ts-ignore
+      .send("⚠️ Failed to play song. Skipping to next track.")
       .catch(() => {});
     serverQueue.index++;
+
     return playNext(interaction);
   }
 
@@ -160,10 +172,7 @@ export async function playNext(
       serverQueue.hasAnnounced = true; // ✅ Prevent duplicate "Playing now" messages
     }
 
-    if (serverQueue.disconnectTimeout) {
-      clearTimeout(serverQueue.disconnectTimeout);
-      serverQueue.disconnectTimeout = null;
-    }
+    cancelScheduledDeletion(serverQueue);
   });
 
   serverQueue.player.once(AudioPlayerStatus.Idle, () => {
@@ -179,25 +188,28 @@ export async function playNext(
     // Reset message flag for the next song
     serverQueue.hasAnnounced = false;
 
-    serverQueue.disconnectTimeout = setTimeout(() => {
-      if (!serverQueue.isLooping) {
-        serverQueue.index++;
-      }
+    scheduleQueueAction(
+      serverQueue,
+      () => {
+        if (!serverQueue.isLooping) {
+          serverQueue.index++;
+        }
 
-      if (shouldDisconnect(interaction)) {
-        serverQueue.connection.destroy();
-        songQueue.delete(interaction.guildId!);
-        return;
-      }
+        if (shouldDisconnect(interaction)) {
+          deleteQueue(guildId);
+          return;
+        }
 
-      playNext(interaction);
-    }, Number(process.env.DC_IDLE));
+        playNext(interaction);
+      },
+    );
   });
 
   serverQueue.player.on("error", (error: Error) => {
     console.error("❌ Audio player error:", error);
     const channel = interaction.channel as TextBasedChannel | null;
     channel
+      // @ts-ignore
       ?.send(`⚠️ Error playing: ${track.url}. Skipping...`)
       .catch(() => {});
     serverQueue.index++;
@@ -235,26 +247,7 @@ export async function playQueue(
     );
   }
 
-  if (!songQueue.has(guildId)) {
-    const player = createAudioPlayer();
-    connection.subscribe(player);
-    songQueue.set(guildId, {
-      tracks: [],
-      index: 0,
-      disconnectTimeout: null,
-      disconnectInterval: null,
-      connection,
-      player,
-      hasAnnounced: false,
-      isLooping: false,
-      isRadio: false,
-    });
-  }
-
-  const guildQueue = songQueue.get(guildId);
-  if (!guildQueue) {
-    return;
-  }
+  const guildQueue = createQueue(guildId, connection);
 
   guildQueue.tracks.push(...tracks);
 
