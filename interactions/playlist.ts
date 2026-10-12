@@ -6,7 +6,7 @@ import {
 } from "discord.js";
 
 import { songQueue } from "../constants";
-import { playQueue } from "../utils/youtube";
+import { playQueue } from "../utils/playback";
 import { createPlaylistModal } from "../utils/playlist";
 import { apiCall } from "../utils/api";
 

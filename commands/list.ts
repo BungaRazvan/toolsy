@@ -8,7 +8,7 @@ import {
   MessageFlags,
 } from "discord.js";
 import { isRadioQueueItem, songQueue } from "../constants";
-import { playNext } from "../utils/youtube";
+import { playNext } from "../utils/playback";
 import { captureError } from "../utils/error";
 
 export const config = {

@@ -6,7 +6,7 @@ import {
 import { captureError, safeEditReply } from "../utils/error";
 
 import { getVoiceConnection } from "@discordjs/voice";
-import { playNext } from "../utils/youtube";
+import { playNext } from "../utils/playback";
 import { isRadioQueueItem, songQueue } from "../constants";
 
 export const config = {

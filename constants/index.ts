@@ -1,5 +1,3 @@
-import type { AudioResource } from "@discordjs/voice";
-
 export type Track = {
   title: string;
   url: string;
@@ -9,7 +7,6 @@ export type RadioQueueItem = {
   type: "radio";
   title: string;
   url: string;
-  resource: AudioResource;
 };
 
 export type QueueItem = Track | RadioQueueItem;

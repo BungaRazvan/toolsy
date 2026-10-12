@@ -1,27 +1,40 @@
-import { AudioPlayerStatus } from "@discordjs/voice";
+import { createAudioResource, StreamType } from "@discordjs/voice";
 import { CommandInteraction, ModalSubmitInteraction } from "discord.js";
 import { RadioQueueItem, ServerQueue } from "../constants";
-import {
-  deleteQueue,
-  scheduleQueueAction,
-} from "./queue";
+import { request } from "undici";
+import { deleteQueue, scheduleQueueAction } from "./queue";
 import { shouldDisconnect } from "./voice";
 import { captureError } from "./error";
+import { AudioPlayerStatus } from "@discordjs/voice";
 
 type RadioInteraction = CommandInteraction | ModalSubmitInteraction;
 
-export function playRadio(
+export async function playRadio(
   serverQueue: ServerQueue,
   radioItem: RadioQueueItem,
   interaction: RadioInteraction,
-): void {
+): Promise<void> {
   const guildId = interaction.guildId!;
+  const response = await request(radioItem.url);
+  if (response.statusCode < 200 || response.statusCode >= 300) {
+    response.body.destroy();
+    throw new Error(`Radio stream returned HTTP ${response.statusCode}`);
+  }
+
+  const resource = createAudioResource(response.body, {
+    inputType: StreamType.Arbitrary,
+  });
+
+  if (serverQueue.tracks[serverQueue.index] !== radioItem) {
+    response.body.destroy();
+    return;
+  }
 
   serverQueue.player.removeAllListeners();
   serverQueue.player.stop(true);
   serverQueue.isRadio = true;
   serverQueue.isLooping = false;
-  serverQueue.player.play(radioItem.resource);
+  serverQueue.player.play(resource);
 
   serverQueue.player.on(AudioPlayerStatus.Playing, () => {
     console.log("✅ Playing radio stream");

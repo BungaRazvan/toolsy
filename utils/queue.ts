@@ -47,6 +47,27 @@ export function cancelScheduledDeletion(queue: ServerQueue): void {
   }
 }
 
+export function removeRadioItems(
+  queue: ServerQueue,
+  preserveCurrent = true,
+): void {
+  for (let index = queue.tracks.length - 1; index >= 0; index--) {
+    const item = queue.tracks[index];
+    if (
+      item &&
+      "type" in item &&
+      item.type === "radio" &&
+      !(preserveCurrent && queue.isRadio && index === queue.index)
+    ) {
+      queue.tracks.splice(index, 1);
+
+      if (index < queue.index) {
+        queue.index--;
+      }
+    }
+  }
+}
+
 export function scheduleQueueAction(
   queue: ServerQueue,
   callback: () => void,
@@ -70,6 +91,7 @@ export function deleteQueue(guildId: string, destroy = true): void {
   }
 
   cancelScheduledDeletion(queue);
+  removeRadioItems(queue, false);
 
   if (destroy) {
     queue.connection.destroy();

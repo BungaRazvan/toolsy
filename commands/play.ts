@@ -1,6 +1,7 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
 
-import { fetchTracksByTitleOrUrl, playQueue } from "../utils/youtube";
+import { fetchTracksByTitleOrUrl } from "../utils/youtube";
+import { playQueue } from "../utils/playback";
 import { captureError, safeEditReply } from "../utils/error";
 import { checkCanPlay } from "../utils/voice";
 
