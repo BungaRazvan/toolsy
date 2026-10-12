@@ -55,6 +55,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   try {
     await entersState(connection, VoiceConnectionStatus.Ready, 20_000);
   } catch (error) {
+    captureError(error, "radioVoiceConnection", { guild_id: guildId });
     connection.destroy();
     return interaction.editReply("❌ Failed to join voice channel.");
   }
@@ -104,7 +105,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   });
 
   serverQueue.player.on("error", (error) => {
-    console.error("❌ Player error:", error);
+    captureError(error, "radioPlayer", { guild_id: guildId });
   });
 
   scheduleQueueAction(

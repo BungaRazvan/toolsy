@@ -7,7 +7,7 @@ import {
 import { getVoiceConnection } from "@discordjs/voice";
 import { createQueue, deleteQueue, scheduleQueueAction } from "../utils/queue";
 
-import Sentry from "@sentry/node";
+import { captureError } from "../utils/error";
 
 export const config = {
   name: "stop",
@@ -63,7 +63,7 @@ export async function execute(interaction: CommandInteraction) {
 
     return interaction.reply("⏹️ Stopped playback and cleared queue.");
   } catch (error) {
-    Sentry.captureException(error);
+    captureError(error, "stopCommand", { guild_id: guildId });
 
     return interaction.reply("Failed to stop playback");
   }

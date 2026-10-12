@@ -9,6 +9,7 @@ import {
 } from "discord.js";
 import { songQueue } from "../constants";
 import { playNext, Track } from "../utils/youtube";
+import { captureError } from "../utils/error";
 
 export const config = {
   name: "list",
@@ -140,7 +141,9 @@ export async function execute(interaction: CommandInteraction) {
     try {
       await interaction.editReply({ components: [] });
     } catch (err) {
-      console.error("Failed to edit reply after collector end:", err);
+      captureError(err, "queueListCleanup", {
+        guild_id: guildId ?? "unknown",
+      });
     }
   });
 }

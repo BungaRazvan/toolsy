@@ -1,4 +1,4 @@
-import { songQueue, Track } from "../constants";
+import { ServerQueue, songQueue, Track } from "../constants";
 import {
   ChatInputCommandInteraction,
   ModalSubmitInteraction,
@@ -12,6 +12,7 @@ import {
   StreamType,
 } from "@discordjs/voice";
 import { shouldDisconnect } from "./voice";
+import { captureError } from "./error";
 import youtubedl from "youtube-dl-exec";
 import {
   cancelScheduledDeletion,
@@ -19,6 +20,8 @@ import {
   deleteQueue,
   scheduleQueueAction,
 } from "./queue";
+
+const playbackAttempts = new WeakMap<ServerQueue, object>();
 
 export async function fetchTracksByTitleOrUrl(song: string) {
   const trimmedSong = song?.trim();
@@ -85,6 +88,7 @@ export async function playNext(
     return;
   }
 
+  playbackAttempts.delete(serverQueue);
   serverQueue.player.removeAllListeners();
 
   while (serverQueue.index < serverQueue.tracks.length) {
@@ -119,8 +123,43 @@ export async function playNext(
   }
 
   const track = serverQueue.tracks[serverQueue.index]!;
+  const playbackAttempt = {};
+  playbackAttempts.set(serverQueue, playbackAttempt);
 
   console.log("▶️ Now playing:", track.url);
+
+  const skipFailedTrack = (error: unknown, context: string) => {
+    if (
+      playbackAttempts.get(serverQueue) !== playbackAttempt ||
+      songQueue.get(guildId) !== serverQueue
+    ) {
+      return;
+    }
+
+    playbackAttempts.delete(serverQueue);
+    cancelScheduledDeletion(serverQueue);
+    captureError(error, context, { guild_id: guildId });
+    serverQueue.player.removeAllListeners();
+    serverQueue.player.stop(true);
+
+    const channel = interaction.channel;
+    if (channel?.isSendable()) {
+      void channel
+        .send("⚠️ Failed to play song. Skipping to the next track.")
+        .catch((notificationError: unknown) =>
+        captureError(notificationError, "trackFailureNotification", {
+          guild_id: guildId,
+        }),
+      );
+    }
+
+    serverQueue.index++;
+    void playNext(interaction).catch((nextTrackError) =>
+      captureError(nextTrackError, "nextTrackAfterFailure", {
+        guild_id: guildId,
+      }),
+    );
+  };
 
   try {
     const audio = youtubedl.exec(
@@ -140,8 +179,17 @@ export async function playNext(
       },
       {
         stdio: ["ignore", "pipe", "pipe"],
+        reject: false,
       },
     );
+
+    void audio
+      .then(({ error }) => {
+        if (error) {
+          skipFailedTrack(error, "youtubeDownload");
+        }
+      })
+      .catch((error) => skipFailedTrack(error, "youtubeDownload"));
 
     if (!audio || !audio.stdout) {
       throw new Error("Unable to create audio stream from URL");
@@ -153,16 +201,8 @@ export async function playNext(
 
     serverQueue.player.play(resource);
   } catch (error) {
-    console.error("❌ Failed to create audio resource:", error);
-    const channel = interaction.channel as TextBasedChannel;
-
-    channel
-      // @ts-ignore
-      .send("⚠️ Failed to play song. Skipping to next track.")
-      .catch(() => {});
-    serverQueue.index++;
-
-    return playNext(interaction);
+    skipFailedTrack(error, "audioResourceCreation");
+    return;
   }
 
   serverQueue.player.once(AudioPlayerStatus.Playing, async () => {
@@ -206,14 +246,7 @@ export async function playNext(
   });
 
   serverQueue.player.on("error", (error: Error) => {
-    console.error("❌ Audio player error:", error);
-    const channel = interaction.channel as TextBasedChannel | null;
-    channel
-      // @ts-ignore
-      ?.send(`⚠️ Error playing: ${track.url}. Skipping...`)
-      .catch(() => {});
-    serverQueue.index++;
-    playNext(interaction);
+    skipFailedTrack(error, "audioPlayer");
   });
 }
 

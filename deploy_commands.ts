@@ -1,9 +1,11 @@
 import { REST } from "@discordjs/rest";
 import { Routes } from "discord-api-types/v10";
 import { slashCommands } from "./commands";
+import { captureError, initErrorTracking } from "./utils/error";
 import env from "dotenv";
 
 env.config();
+initErrorTracking(process.env.ENV === "dev");
 
 const commandsData = Object.values(slashCommands).map(
   (command) => command.data
@@ -30,8 +32,8 @@ const deplyCommands = async () => {
       `Successfully reloaded ${data.length} application (/) commands.`
     );
   } catch (error) {
-    // And of course, make sure you catch and log any errors!
-    console.error(error);
+    captureError(error, "deploySlashCommands");
+    process.exitCode = 1;
   }
 };
 

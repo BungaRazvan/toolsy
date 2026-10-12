@@ -28,6 +28,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     return interaction.reply("You must provide a YouTube URL");
   }
 
+  // @ts-ignore
   const voiceChannel = interaction.member?.voice?.channel;
 
   if (!voiceChannel) {
