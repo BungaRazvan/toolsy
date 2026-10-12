@@ -5,7 +5,14 @@ import {
 } from "discord.js";
 
 import { getVoiceConnection } from "@discordjs/voice";
-import { createQueue, deleteQueue, scheduleQueueAction } from "../utils/queue";
+import { songQueue } from "../constants";
+import {
+  cancelScheduledDeletion,
+  createQueue,
+  deleteQueue,
+  removeRadioItems,
+  scheduleQueueAction,
+} from "../utils/queue";
 
 import { captureError } from "../utils/error";
 
@@ -57,6 +64,8 @@ export async function execute(interaction: CommandInteraction) {
   }
 
   try {
+    const serverQueue = songQueue.get(guildId);
+
     deleteQueue(guildId, false);
     const idleQueue = createQueue(guildId, connection);
     scheduleQueueAction(idleQueue, () => deleteQueue(guildId));

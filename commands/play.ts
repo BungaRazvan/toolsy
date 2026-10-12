@@ -2,6 +2,7 @@ import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
 
 import { fetchTracksByTitleOrUrl, playQueue } from "../utils/youtube";
 import { captureError, safeEditReply } from "../utils/error";
+import { checkCanPlay } from "../utils/voice";
 
 export const config = {
   name: "play",
@@ -22,17 +23,9 @@ export const data = new SlashCommandBuilder()
 
 export async function execute(interaction: ChatInputCommandInteraction) {
   const song = interaction.options.getString("song", true);
-  const url = URL.canParse(song) ? new URL(song) : null;
 
-  if (url && url.hostname !== "www.youtube.com") {
-    return interaction.reply("You must provide a YouTube URL");
-  }
-
-  // @ts-ignore
-  const voiceChannel = interaction.member?.voice?.channel;
-
-  if (!voiceChannel) {
-    return interaction.reply("You must be in a voice channel!");
+  if (!checkCanPlay(interaction, song)) {
+    return;
   }
 
   await interaction.deferReply();

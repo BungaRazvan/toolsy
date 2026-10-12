@@ -1,23 +1,28 @@
-import { ServerQueue, songQueue, Track } from "../constants";
+import { isRadioQueueItem, ServerQueue, songQueue, Track } from "../constants";
 import {
   ChatInputCommandInteraction,
+  CommandInteraction,
   ModalSubmitInteraction,
   TextBasedChannel,
 } from "discord.js";
 import {
   AudioPlayerStatus,
   createAudioResource,
-  getVoiceConnection,
-  joinVoiceChannel,
   StreamType,
 } from "@discordjs/voice";
-import { shouldDisconnect } from "./voice";
+import {
+  ensureVoiceChannel,
+  getOrJoinVoiceConnection,
+  shouldDisconnect,
+} from "./voice";
 import { captureError } from "./error";
+import { playRadio } from "./radio";
 import youtubedl from "youtube-dl-exec";
 import {
   cancelScheduledDeletion,
   createQueue,
   deleteQueue,
+  removeRadioItems,
   scheduleQueueAction,
 } from "./queue";
 
@@ -74,9 +79,12 @@ export async function fetchTracks(
   return response.json();
 }
 
-export async function playNext(
-  interaction: ChatInputCommandInteraction | ModalSubmitInteraction,
-) {
+type InteractionWithVoice =
+  | ChatInputCommandInteraction
+  | CommandInteraction
+  | ModalSubmitInteraction;
+
+export async function playNext(interaction: InteractionWithVoice) {
   if (!interaction.guildId) {
     return;
   }
@@ -88,7 +96,6 @@ export async function playNext(
     return;
   }
 
-  playbackAttempts.delete(serverQueue);
   serverQueue.player.removeAllListeners();
 
   while (serverQueue.index < serverQueue.tracks.length) {
@@ -112,17 +119,20 @@ export async function playNext(
     // @ts-ignore
     channel?.send("⚠️ No more songs. Leaving Soon").catch(() => {});
 
-    scheduleQueueAction(
-      serverQueue,
-      () => {
-        deleteQueue(guildId);
-        console.log("⏹️ No more songs. Leaving voice channel...");
-      },
-    );
+    scheduleQueueAction(serverQueue, () => {
+      deleteQueue(guildId);
+      console.log("⏹️ No more songs. Leaving voice channel...");
+    });
     return;
   }
 
-  const track = serverQueue.tracks[serverQueue.index]!;
+  const queueItem = serverQueue.tracks[serverQueue.index]!;
+  if (isRadioQueueItem(queueItem)) {
+    playRadio(serverQueue, queueItem, interaction);
+    return;
+  }
+
+  const track = queueItem;
   const playbackAttempt = {};
   playbackAttempts.set(serverQueue, playbackAttempt);
 
@@ -147,10 +157,10 @@ export async function playNext(
       void channel
         .send("⚠️ Failed to play song. Skipping to the next track.")
         .catch((notificationError: unknown) =>
-        captureError(notificationError, "trackFailureNotification", {
-          guild_id: guildId,
-        }),
-      );
+          captureError(notificationError, "trackFailureNotification", {
+            guild_id: guildId,
+          }),
+        );
     }
 
     serverQueue.index++;
@@ -170,12 +180,8 @@ export async function playNext(
         quiet: true,
         noWarnings: true,
         output: "-",
-        // @ts-ignore
-        extractor_args: {
-          youtube: {
-            player_client: ["android", "ios", "mweb"],
-          },
-        },
+        // @ts-expect-error yt-dlp supports this option; youtube-dl-exec's Flags type omits it.
+        extractorArgs: "youtube:player_client=android,ios,mweb",
       },
       {
         stdio: ["ignore", "pipe", "pipe"],
@@ -218,6 +224,14 @@ export async function playNext(
   serverQueue.player.once(AudioPlayerStatus.Idle, () => {
     console.log("🎵 Song ended. Playing next...");
 
+    const nextItem = serverQueue.tracks[serverQueue.index + 1];
+    if (nextItem && isRadioQueueItem(nextItem)) {
+      serverQueue.index++;
+      serverQueue.isLooping = false;
+      playRadio(serverQueue, nextItem, interaction);
+      return;
+    }
+
     if (serverQueue.index >= serverQueue.tracks.length) {
       // @ts-ignore
       interaction.channel.send("⚠️ No more songs. Leaving Soon");
@@ -228,21 +242,18 @@ export async function playNext(
     // Reset message flag for the next song
     serverQueue.hasAnnounced = false;
 
-    scheduleQueueAction(
-      serverQueue,
-      () => {
-        if (!serverQueue.isLooping) {
-          serverQueue.index++;
-        }
+    scheduleQueueAction(serverQueue, () => {
+      if (!serverQueue.isLooping) {
+        serverQueue.index++;
+      }
 
-        if (shouldDisconnect(interaction)) {
-          deleteQueue(guildId);
-          return;
-        }
+      if (shouldDisconnect(interaction)) {
+        deleteQueue(guildId);
+        return;
+      }
 
-        playNext(interaction);
-      },
-    );
+      playNext(interaction);
+    });
   });
 
   serverQueue.player.on("error", (error: Error) => {
@@ -251,38 +262,47 @@ export async function playNext(
 }
 
 export async function playQueue(
-  interaction: ChatInputCommandInteraction | ModalSubmitInteraction,
+  interaction: InteractionWithVoice,
   tracks: Track[],
 ) {
-  // @ts-ignore
-  const voiceChannel = interaction.member?.voice?.channel;
+  const voiceChannel = ensureVoiceChannel(
+    interaction,
+    "You must be in a voice channel!",
+  );
 
   if (!voiceChannel) {
     return;
   }
 
   const guildId = interaction.guildId!;
-
-  let connection = getVoiceConnection(guildId!);
+  const connection = getOrJoinVoiceConnection(interaction, voiceChannel);
 
   if (!connection) {
-    connection = joinVoiceChannel({
-      channelId: voiceChannel.id,
-      guildId: voiceChannel.guild.id,
-      adapterCreator: voiceChannel.guild.voiceAdapterCreator,
-    });
-  } else if (
-    connection &&
-    connection.joinConfig.channelId !== voiceChannel.id
-  ) {
-    return interaction.editReply(
-      "Song already playing on another voice channel",
-    );
+    return;
   }
 
   const guildQueue = createQueue(guildId, connection);
+  const replacingRadio = guildQueue.isRadio;
 
-  guildQueue.tracks.push(...tracks);
+  if (replacingRadio) {
+    cancelScheduledDeletion(guildQueue);
+    guildQueue.player.removeAllListeners();
+    guildQueue.player.stop(true);
+    guildQueue.isRadio = false;
+    guildQueue.hasAnnounced = false;
+    const currentItem = guildQueue.tracks[guildQueue.index];
+    if (currentItem && isRadioQueueItem(currentItem)) {
+      currentItem.resource.playStream.destroy();
+      guildQueue.tracks.splice(guildQueue.index, 1);
+    }
+  }
+
+  removeRadioItems(guildQueue);
+  if (replacingRadio) {
+    guildQueue.tracks.splice(guildQueue.index, 0, ...tracks);
+  } else {
+    guildQueue.tracks.push(...tracks);
+  }
 
   if (
     guildQueue.player.state.status !== AudioPlayerStatus.Playing &&
