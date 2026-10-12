@@ -1,4 +1,4 @@
-import { playNext } from "../utils/youtube";
+import { playNext } from "../utils/playback";
 import { songQueue } from "../constants";
 import * as voice from "@discordjs/voice";
 import { AudioPlayerStatus } from "@discordjs/voice";

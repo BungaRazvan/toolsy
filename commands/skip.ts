@@ -6,8 +6,8 @@ import {
 import { captureError, safeEditReply } from "../utils/error";
 
 import { getVoiceConnection } from "@discordjs/voice";
-import { playNext } from "../utils/youtube";
-import { songQueue } from "../constants";
+import { playNext } from "../utils/playback";
+import { isRadioQueueItem, songQueue } from "../constants";
 
 export const config = {
   name: "skip",
@@ -61,7 +61,7 @@ export async function execute(interaction: CommandInteraction) {
     skip_no = Number(number);
   }
 
-  const serverQueue = songQueue.get(interaction.guildId);
+  const serverQueue = songQueue.get(interaction.guildId!);
 
   if (!serverQueue) {
     return interaction.reply({
@@ -71,23 +71,27 @@ export async function execute(interaction: CommandInteraction) {
   }
 
   const index = serverQueue.index + skip_no;
+  const nextItem = serverQueue.tracks[index];
 
-  if (index > serverQueue.tracks.length - 1) {
+  if (!nextItem) {
     return interaction.reply({
-      content: `No next song to play`,
+      content: "No queued items to skip to.",
       flags: MessageFlags.Ephemeral,
     });
   }
 
   serverQueue.index = index;
+  serverQueue.isRadio = isRadioQueueItem(nextItem);
   serverQueue.hasAnnounced = false;
 
   await interaction.deferReply();
-  playNext(interaction);
+  void playNext(interaction).catch((error) =>
+    captureError(error, "skipPlayback", { guild_id: guildId! }),
+  );
 
   // Remove old deferred reply
   try {
-    await safeEditReply(interaction, "Song skipped");
+    await safeEditReply(interaction, "Skipped to next queue item.");
   } catch (error) {
     captureError(error, "skipCommandEditReply");
   }

@@ -7,8 +7,9 @@ import {
   ComponentType,
   MessageFlags,
 } from "discord.js";
-import { songQueue } from "../constants";
-import { playNext, Track } from "../utils/youtube";
+import { isRadioQueueItem, songQueue } from "../constants";
+import { playNext } from "../utils/playback";
+import { captureError } from "../utils/error";
 
 export const config = {
   name: "list",
@@ -22,7 +23,7 @@ export const data = new SlashCommandBuilder()
   .setDescription(config.description);
 
 export async function execute(interaction: CommandInteraction) {
-  const guildId = interaction.guildId;
+  const guildId = interaction.guildId!;
   const serverQueue = songQueue.get(guildId);
 
   if (!serverQueue || serverQueue.tracks.length === 0) {
@@ -41,8 +42,10 @@ export async function execute(interaction: CommandInteraction) {
     const tracks = serverQueue.tracks.slice(start, end);
 
     const songList = tracks
-      .map(
-        (track: Track, index: number) => `${start + index + 1}. ${track.title}`,
+      .map((item, index) =>
+        isRadioQueueItem(item)
+          ? `${start + index + 1}. [📻 ${item.title}](${item.url})`
+          : `${start + index + 1}. ${item.title}`,
       )
       .join("\n");
 
@@ -53,11 +56,12 @@ export async function execute(interaction: CommandInteraction) {
         .setStyle(ButtonStyle.Secondary),
     );
 
-    const favButtons = tracks.map((_: any, i: number) =>
+    const favButtons = tracks.map((item, i: number) =>
       new ButtonBuilder()
         .setCustomId(`fav_${start + i}`)
         .setLabel(`⭐ ${start + i + 1}`)
-        .setStyle(ButtonStyle.Secondary),
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(isRadioQueueItem(item)),
     );
 
     const playRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -111,13 +115,25 @@ export async function execute(interaction: CommandInteraction) {
       page--;
     } else if (i.customId.startsWith("play_")) {
       const index = parseInt(i.customId.split("_")[1]);
+
       serverQueue.index = index;
+
+      const item = serverQueue.tracks[index];
+      const isRadioItem = isRadioQueueItem(item);
+
       await i.update({
-        content: `▶️ Playing **${serverQueue.tracks[index].title}**`,
+        content: isRadioItem
+          ? "📻 Starting radio"
+          : `▶️ Playing **${item.title}**`,
         components: [],
       });
       serverQueue.hasAnnounced = false;
-      playNext(interaction);
+      void playNext(interaction).catch((error) =>
+        captureError(error, "queueItemPlayback", {
+          guild_id: guildId ?? "unknown",
+        }),
+      );
+
       return;
     } else if (i.customId.startsWith("fav_")) {
       const index = parseInt(i.customId.split("_")[1]);
@@ -140,7 +156,9 @@ export async function execute(interaction: CommandInteraction) {
     try {
       await interaction.editReply({ components: [] });
     } catch (err) {
-      console.error("Failed to edit reply after collector end:", err);
+      captureError(err, "queueListCleanup", {
+        guild_id: guildId ?? "unknown",
+      });
     }
   });
 }

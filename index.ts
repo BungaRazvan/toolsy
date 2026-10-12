@@ -8,14 +8,15 @@ import {
   Interaction,
   CommandInteraction,
 } from "discord.js";
-
 import env from "dotenv";
 
 import { slashCommands, normalCommands, CustomCommand } from "./commands";
 import { routeInteractions } from "./interactions";
 import { captureError, initErrorTracking, safeReply } from "./utils/error";
+import { deleteQueue } from "./utils/queue";
 
 env.config();
+initErrorTracking(process.env.ENV === "dev");
 
 const bot = new Client({
   intents: [
@@ -27,8 +28,6 @@ const bot = new Client({
 });
 
 const commands = new Collection<string, CustomCommand>();
-const isDEV = process.env.ENV === "dev";
-
 for (const [commandName, commandValues] of Object.entries(normalCommands)) {
   console.log(`${commandName} loaded!`);
   commands.set(commandName, commandValues);
@@ -59,12 +58,31 @@ bot.on(Events.MessageCreate, async (message) => {
     return;
   }
 
-  commandFile.execute(bot, message, args);
+  try {
+    await commandFile.execute(bot, message, args);
+  } catch (error) {
+    captureError(error, "messageCommandFailure", {
+      command: commandFile.config.name,
+      guild_id: message.guildId ?? "unknown",
+    });
+  }
+});
+
+bot.on(Events.VoiceStateUpdate, (oldState, newState) => {
+  if (
+    newState.id !== bot.user?.id ||
+    !oldState.channelId ||
+    newState.channelId
+  ) {
+    return;
+  }
+
+  const guildId = newState.guild.id;
+
+  deleteQueue(guildId);
 });
 
 bot.on("ready", async () => {
-  initErrorTracking(isDEV);
-
   // @ts-ignore
   console.log(`${bot.user.username} is online`);
   console.log(`Bot is in ${bot.guilds.cache.size} servers`);
@@ -78,14 +96,6 @@ bot.on("ready", async () => {
       },
     ],
   });
-});
-
-process.on("unhandledRejection", (reason) => {
-  captureError(reason, "unhandledRejection");
-});
-
-process.on("uncaughtException", (error) => {
-  captureError(error, "uncaughtException");
 });
 
 const executeInteraction = async (interaction: Interaction) => {
@@ -109,8 +119,12 @@ bot.on(Events.InteractionCreate, async (interaction) => {
   try {
     await executeInteraction(interaction);
   } catch (err) {
-    captureError(err, "interactionFailure");
+    captureError(err, "interactionFailure", {
+      command: interaction.isCommand() ? interaction.commandName : "unknown",
+      guild_id: interaction.guildId ?? "unknown",
+    });
 
+    // @ts-ignore
     await safeReply(interaction, {
       content: "⚠️ An error occurred while running that command.",
       ephemeral: true,

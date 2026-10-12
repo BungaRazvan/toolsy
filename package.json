@@ -29,6 +29,7 @@
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
+    "@types/lodash": "^4.17.26",
     "chokidar-cli": "^3.0.0",
     "jest": "^30.2.0",
     "prettier": "2.8.0",

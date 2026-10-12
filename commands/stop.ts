@@ -4,10 +4,17 @@ import {
   MessageFlags,
 } from "discord.js";
 
-import { songQueue } from "../constants";
 import { getVoiceConnection } from "@discordjs/voice";
+import { songQueue } from "../constants";
+import {
+  cancelScheduledDeletion,
+  createQueue,
+  deleteQueue,
+  removeRadioItems,
+  scheduleQueueAction,
+} from "../utils/queue";
 
-import Sentry from "@sentry/node";
+import { captureError } from "../utils/error";
 
 export const config = {
   name: "stop",
@@ -23,6 +30,7 @@ export const data = new SlashCommandBuilder()
 export async function execute(interaction: CommandInteraction) {
   // @ts-ignore
   const voiceChannel = interaction.member?.voice?.channel;
+
   if (!voiceChannel) {
     return interaction.reply({
       content: "Not connected to voice channel",
@@ -31,7 +39,15 @@ export async function execute(interaction: CommandInteraction) {
   }
 
   const guildId = interaction.guildId;
-  const connection = getVoiceConnection(guildId!);
+
+  if (!guildId) {
+    return interaction.reply({
+      content: "❌ Unable to retrieve guild.",
+      flags: MessageFlags.Ephemeral,
+    });
+  }
+
+  const connection = getVoiceConnection(guildId);
 
   if (!connection) {
     return interaction.reply({
@@ -47,31 +63,16 @@ export async function execute(interaction: CommandInteraction) {
     });
   }
 
-  if (!songQueue.has(guildId)) {
-    return interaction.reply({
-      content: "❌ No active song queue.",
-      flags: MessageFlags.Ephemeral,
-    });
-  }
-
-  const serverQueue = songQueue.get(guildId);
-
   try {
-    serverQueue.player.stop();
+    const serverQueue = songQueue.get(guildId);
 
-    if (serverQueue.disconnectInterval) {
-      clearInterval(serverQueue.disconnectInterval);
-    }
-
-    if (serverQueue.disconnectTimeout) {
-      clearTimeout(serverQueue.disconnectTimeout);
-    }
-
-    songQueue.delete(guildId);
+    deleteQueue(guildId, false);
+    const idleQueue = createQueue(guildId, connection);
+    scheduleQueueAction(idleQueue, () => deleteQueue(guildId));
 
     return interaction.reply("⏹️ Stopped playback and cleared queue.");
   } catch (error) {
-    Sentry.captureException(error);
+    captureError(error, "stopCommand", { guild_id: guildId });
 
     return interaction.reply("Failed to stop playback");
   }

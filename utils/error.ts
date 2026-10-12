@@ -14,19 +14,29 @@ export function initErrorTracking(isDEV: boolean) {
   });
 }
 
-export function captureError(error: unknown, context?: string) {
+export function captureError(
+  error: unknown,
+  context?: string,
+  tags?: Record<string, string>,
+) {
   const label = context ? `[${context}]` : "[Error]";
-
-  if (error instanceof Error) {
-    console.error(label, error);
-    Sentry.captureException(error);
-    return;
-  }
+  const exception =
+    error instanceof Error
+      ? error
+      : new Error(typeof error === "string" ? error : "Unknown error");
 
   console.error(label, error);
-  Sentry.captureException(
-    new Error(typeof error === "string" ? error : "Unknown error"),
-  );
+  Sentry.withScope((scope) => {
+    if (context) {
+      scope.setTag("error_context", context);
+    }
+
+    for (const [key, value] of Object.entries(tags ?? {})) {
+      scope.setTag(key, value);
+    }
+
+    scope.captureException(exception);
+  });
 }
 
 export async function safeReply(
@@ -34,7 +44,7 @@ export async function safeReply(
   replyOptions: string | MessagePayload | InteractionReplyOptions,
 ) {
   if (!interaction.isRepliable()) {
-    console.error("safeReply failed: interaction is not repliable");
+    captureError(new Error("Interaction is not repliable"), "safeReply");
     return null;
   }
 
@@ -57,7 +67,7 @@ export async function safeEditReply(
   replyOptions: string | MessagePayload | InteractionEditReplyOptions,
 ) {
   if (!interaction.isRepliable()) {
-    console.error("safeEditReply failed: interaction is not repliable");
+    captureError(new Error("Interaction is not repliable"), "safeEditReply");
     return null;
   }
 

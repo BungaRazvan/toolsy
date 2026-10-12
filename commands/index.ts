@@ -36,7 +36,7 @@ const commands: CommandsCollection = {
   list,
   playlist,
   mc_stats,
-  // radio,
+  radio,
 };
 
 const slashCommands: CommandsCollection = {};
